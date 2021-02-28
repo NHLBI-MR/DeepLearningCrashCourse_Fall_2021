@@ -50,7 +50,9 @@ L3       | Convolution neural network        | Convolution and its variants, bad
 L4       | Convolution neural network (cont.)| Resnet, u-net, use CNN for classification, segmentation, detection|                | Assignment 3
 L5       | Recurrent neural network          | RNN basics, vallina RNN, LSTM                                  |                   | 
 L6       | RNN and Transformer               | GRU, Self-attention, Workd embeding, Transformers              |                   | Assignment 4
-L7       | Model training                    | Nut and bolts, learning rate scheduling, OneCycle, Debug       |                   | 
+L7       | Model training                    | Nut and bolts, parallel training, learning rate scheduling, OneCycle, Debug       |                   | 
 L8       | Generative  model                 | Generative vs. discriminative, GAN, its cost function, GAN variants, CycleGAN, CycleGAN+Unet        |                   |  Assignment 5
 L9       | Tooling and infrastructures       | Data management, experiment management, testing, tooling        |                   |  Assignment 6
-L10      | Other topics and summary          | Latest progress, meta-learning, model deployment, build your own DL lab        |                   |  Assignment 7
+L10      | Other topics                      | Latest progress, meta-learning, model deployment, build your own DL lab        |                   |  Assignment 7
+L11      | Invited lecture 1                 | Weak supervision and software 2.0        |                   |  
+L12      | Invited lecture 2                 | Full stack deep learning        |                   |  
