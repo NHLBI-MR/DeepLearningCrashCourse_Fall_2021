@@ -38,7 +38,7 @@ GAN and fun | Build up the generative adversial network to create new cardaic im
 Data management, experiment manage | Use DVC to manage data and training models; Add wandb for experiment management
 Mode deployemnt | Use streamlit to deploy your model from assgiment 2; You can run the model as a web service and show to your lab
 
-After going through the assignments, you should feel comfort/confident to build, debug and deploy your own models!
+After going through the assignments, you should feel comfort/confident to build, debug and deploy your own models! :clap::clap::clap:
 
 ## *Schedule*
 
