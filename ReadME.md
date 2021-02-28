@@ -18,7 +18,7 @@ Hui Xue | David C. Hansen
 ------------ | -------------
 ![Hui Xue](https://media-exp1.licdn.com/dms/image/C4D03AQGJuEIlujdiHQ/profile-displayphoto-shrink_200_200/0/1597325607723?e=1620259200&v=beta&t=pXeEwCeXeMfOWCfhAps-eJJ8Qrc_Ok6ql7Gp9skanNg) | ![David Hansen](https://media-exp1.licdn.com/dms/image/C5603AQGMGQ5JOiBsGg/profile-displayphoto-shrink_200_200/0/1516604405465?e=1620259200&v=beta&t=_pjDf9VYzkqg1BFVjGzuygr3OKts2m_adFCMTPvpgMw)
 hui.xue@nih.gov | davidchansen@gradientsoftware.net
-Hui is an active researcher on developing deep learning based cardiac imaging applications, including reconstruction, image analysis, auto reporting and disease classification. The AI imaging products he built are deployed globally and used daily.  | David is the founder and technical director of Gradient Software. He developed AI solutions for onocoloy planning, image denoising and enhancement, and reporting. 
+Hui is an active researcher on developing deep learning based cardiac imaging applications. The AI imaging products he built are deployed globally and used daily.  | David is the founder and technical director of Gradient Software. He developed AI solutions for onocoloy planning, image denoising and enhancement, and reporting. 
 
 ## Assignments
 
