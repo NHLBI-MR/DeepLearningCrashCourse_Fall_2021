@@ -25,11 +25,16 @@ The assignments and lab contents are the meat of this course. The goal is to dem
 
 After each lecture, there are suggested reading lists. Please **read** them.
 
-There are six assignments planned. 
+There are 7 assignments planned. 
 
 Assignments  | What it is for
 ------------ | -------------
 Setup and basic NN | Setup the development environment, including GPU. Code up a NN with MLP and CNN in numpy, including forward-pass, backprop, optimization and training loop
-
+Pytorch model building | Build up the CNN model using pytorch, implement training and validation
+CNN for segmentation and detection | Build up the full-size u-net model for segmentation and detection; Resnet; Add your own loss function
+RNN for trigger detection | Build up RNN model for trigger detection from time signal; Solve the problem with LSTM, GRU and Transfomer
+GAN and fun | Build up the generative adversial network to create new cardaic images; Will your image be good enough to let your model segment it (from assigment 3)?
+Data management, experiment manage | Use DVC to manage data and training models; Add wandb for experiment management
+Mode deployemnt | Use streamlit to deploy your model from assgiment 2; You can run the model as a web service and show to your lab
 
 ## *Schedule*
