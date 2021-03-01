@@ -44,15 +44,15 @@ After going through the assignments, you should feel comfort/confident to build,
 
 Time     | Lectures                          | What it is for   |  Reading list     | Assignments
 ---------| --------------------------------- | ---------------- | --------------    | ------------
-L1       | Fundation of deep learning        | Building blocks, MLP, course overview                          |                   | 
-L2       | Fundation of deep learning (cont.)| backprop, optimization, loss function ...                      |                   | Assignment 1
-L3       | Convolution neural network        | Convolution and its variants, badkprop of conv, Common architectures|              | Assignment 2
-L4       | Convolution neural network (cont.)| Resnet, u-net, use CNN for classification, segmentation, detection|                | Assignment 3
-L5       | Recurrent neural network          | RNN basics, vallina RNN, LSTM                                  |                   | 
-L6       | RNN and Transformer               | GRU, Self-attention, Workd embeding, Transformers              |                   | Assignment 4
-L7       | Model training                    | Nut and bolts, parallel training, learning rate scheduling, OneCycle, Debug       |                   | 
-L8       | Generative  model                 | Generative vs. discriminative, GAN, its cost function, GAN variants, CycleGAN, CycleGAN+Unet        |                   |  Assignment 5
-L9       | Tooling and infrastructures       | Data management, experiment management, testing, tooling        |                   |  Assignment 6
-L10      | Other topics                      | Latest progress, meta-learning, model deployment, build your own DL lab        |                   |  Assignment 7
-L11      | Invited lecture 1                 | Weak supervision and software 2.0        |                   |  
-L12      | Invited lecture 2                 | Full stack deep learning        |                   |  
+L1       | Fundation of deep learning (Hui)          | Building blocks, MLP, course overview                          |                   | 
+L2       | Fundation of deep learning, cont. (Hui)   | backprop, optimization, loss function ...                      |                   | Assignment 1
+L3       | Convolution neural network (David)        | Convolution and its variants, badkprop of conv, Common architectures|              | Assignment 2
+L4       | Convolution neural network, cont.  (David)| Resnet, u-net, use CNN for classification, segmentation, detection|                | Assignment 3
+L5       | Recurrent neural network (Hui)            | RNN basics, vallina RNN, LSTM                                  |                   | 
+L6       | RNN and Transformer (Hui)                 | GRU, Self-attention, Workd embeding, Transformers              |                   | Assignment 4
+L7       | Model training (David)                    | Nut and bolts, parallel training, learning rate scheduling, OneCycle, Debug       |                   | 
+L8       | Generative  model (Hui)                   | Generative vs. discriminative, GAN, its cost function, GAN variants, CycleGAN, CycleGAN+Unet        |                   |  Assignment 5
+L9       | Tooling and infrastructures (Hui)         | Data management, experiment management, testing, tooling        |                   |  Assignment 6
+L10      | Other topics (Hui)                        | Latest progress, meta-learning, model deployment, build your own DL lab        |                   |  Assignment 7
+L11      | Invited lecture 1                         | Weak supervision and software 2.0        |                   |  
+L12      | Invited lecture 2                         | Full stack deep learning        |                   |  
