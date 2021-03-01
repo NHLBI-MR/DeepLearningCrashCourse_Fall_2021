@@ -1,4 +1,4 @@
-# Deep Leanring Crash Course
+# Deep Learning Crash Course
 ### Fall 2021
 
 ## Overview
