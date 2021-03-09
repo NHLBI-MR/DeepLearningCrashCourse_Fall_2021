@@ -10,7 +10,7 @@ Deep learning (DL) is currently the most effective way to model the non-structur
   3. Help everyone be comfort with coding up their models
   4. Grow interests inside DIR and improve community awareness of applying DL in biomedical R&D
   5. Provide oppertunity for social gathering by bringing colleagues who are interested in these topics together
-  6. Prepare trainnees and fellows for DL related job oppertunties
+  6. Prepare trainnees and fellows for DL related jobs
 
 ## Instructors
 
