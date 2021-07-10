@@ -188,6 +188,13 @@ def run_trainning(args, data, labels):
 
     (N, dim) = train_data.shape
 
+    if(args.one_batch_training):
+        print("Train with only one batch")
+        batch_start = np.random.randint(0, N-batch_size, 1, dtype=int)
+        train_data = train_data[batch_start[0]:batch_start[0]+batch_size,:]
+        train_labels = train_labels[batch_start[0]:batch_start[0]+batch_size,:]
+        (N, dim) = train_data.shape
+
     # *** START CODE HERE ***
     # initialize the parameters
     params = initialize_params(dim, num_hidden1, num_hidden2, 10)
@@ -246,7 +253,7 @@ def run_trainning(args, data, labels):
 
 def _parse_args():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="MLP for MNIST classsification")
+    parser = argparse.ArgumentParser(description="Three-layer MLP for MNIST classsification")
 
     parser.add_argument('--num_epochs', type=int, default=30, help='number of epochs to train')
     parser.add_argument('--num_hidden1', type=int, default=200, help='size for the first hidden layer')
@@ -260,6 +267,8 @@ def _parse_args():
         type=str,
         default="base_line",
         help='String to record this training')
+
+    parser.add_argument('--one_batch_training', type=bool, default=False, help='if True, train with only one batch, for debugging purpose')
 
     args = parser.parse_args()
     return args
