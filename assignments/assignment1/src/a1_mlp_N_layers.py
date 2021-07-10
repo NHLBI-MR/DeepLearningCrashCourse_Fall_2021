@@ -21,8 +21,9 @@ Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.insert(1, str(Project_DIR))
 
 from util import *
+# NOTE: get_weight_bias_key and get_score_activation_key may be useful here
 
-def initialize_params(num_input_layer, num_hidden1, num_hidden2, num_output):
+def initialize_params(num_input_layer, num_hidden_layers, num_output):
     """
     Initialize the model parameters.
 
@@ -31,23 +32,35 @@ def initialize_params(num_input_layer, num_hidden1, num_hidden2, num_output):
 
     Inputs:
         num_input_layer : number of neurons in the input layer
-        num_hidden1 : number of neurons in the first hidden layer
-        num_hidden2 : number of neurons in the second hidden layer
+        num_hidden_layers : number of neurons for each hidden layer, a list, e.g. [300, 100, 50]
         num_output : number of neurons in the output layer
 
     Outputs:
         params : a dictionary storing weights and biases, 
-        params['W1'], params['b1'], params['W2'], params['b2'], params['W2'], params['b3']
+        params['W1'], params['b1'], params['W2'], params['b2'], params['W2'], params['b3'], ...
     """
 
     # *** START CODE HERE ***
     params = dict()
-    params['W1'] = np.random.randn(num_input_layer, num_hidden1)
-    params['b1'] = np.zeros((1, num_hidden1))
-    params['W2'] = np.random.randn(num_hidden1, num_hidden2)
-    params['b2'] = np.zeros((1, num_hidden2))
-    params['W3'] = np.random.randn(num_hidden2, num_output)
-    params['b3'] = np.zeros((1, num_output))
+
+    input_dim = num_input_layer
+
+    N = len(num_hidden_layers)
+
+    for layer in range(N):
+        weight_key, bias_key = get_weight_bias_key(layer+1)
+        if(layer>0):
+            input_dim = num_hidden_layers[layer-1]
+
+        params[weight_key] = np.random.randn(input_dim, num_hidden_layers[layer])
+        params[bias_key] = np.zeros((1, num_hidden_layers[layer]))
+
+    weight_key, bias_key = get_weight_bias_key(N+1)
+    params[weight_key] = np.random.randn(num_hidden_layers[N-1], num_output)
+    params[bias_key] = np.zeros((1, num_output))
+
+    params['num_hidden_layers'] = num_hidden_layers
+
     return params
     # *** END CODE HERE ***
 
@@ -68,31 +81,32 @@ def forward_pass(data, labels, params):
     # *** START CODE HERE ***
     B, K = data.shape
 
-    W1 = params['W1']
-    b1 = params['b1']
-    W2 = params['W2']
-    b2 = params['b2']
-    W3 = params['W3']
-    b3 = params['b3']
+    num_hidden_layers = params['num_hidden_layers']
+    N = len(num_hidden_layers)
 
-    z1 = data.dot(W1) + b1
-    a1 = sigmoid(z1)
+    x = data
+    for layer in range(N):
+        weight_key, bias_key = get_weight_bias_key(layer+1)
+        z = x.dot(params[weight_key]) + params[bias_key]
+        a = sigmoid(z)
 
-    z2 = a1.dot(W2) + b2
-    a2 = sigmoid(z2)
+        score_key, activation_key = get_score_activation_key(layer+1)
+        params[score_key] = z
+        params[activation_key] = a
 
-    z3 = a2.dot(W3) + b3
-    y_hat = softmax(z3)
+        x = a
+
+    weight_key, bias_key = get_weight_bias_key(N+1)
+    z = x.dot(params[weight_key]) + params[bias_key]
+    y_hat = softmax(z)
+
+    score_key, activation_key = get_score_activation_key(N+1)
+    params[score_key] = z
+    params[activation_key] = y_hat
+    params['y_hat'] = y_hat
 
     loss = -np.sum(np.multiply(labels, np.log(y_hat + 1e-8))) / B
 
-    params['z1'] = z1
-    params['a1'] = a1
-    params['z2'] = z2
-    params['a2'] = a2
-    params['z3'] = z3
-    params['y_hat'] = y_hat
-    
     return loss, y_hat, params
     # *** END CODE HERE ***
 
@@ -108,53 +122,51 @@ def backward_pass(data, labels, params, reg):
 
     Outputs:
         grad : a dictionary contains gradients for weights and biases
-        grad['W1'], grad['b1'], grad['W2'], grad['b2'], grad['W3'], grad['b3'] 
+        grad['W1'], grad['b1'], grad['W2'], grad['b2'], grad['W3'], grad['b3'] ...
 
     You need to compute the gradient of loss to all weights and biases, including taking derivatives through the softmax.
     """
     # *** START CODE HERE ***
-    W1 = params['W1']
-    b1 = params['b1']
-    W2 = params['W2']
-    b2 = params['b2']
-    W3 = params['W3']
-    b3 = params['b3']
-
-    z1 = params['z1']
-    a1 = params['a1']
-    z2 = params['z2']
-    a2 = params['a2']
-    z3 = params['z3']
+    num_hidden_layers = params['num_hidden_layers']
+    N = len(num_hidden_layers)
     y_hat = params['y_hat']
 
     B, K = data.shape
 
-    dz3 = -(labels - y_hat) 
-    dW3 = np.dot(a2.T, dz3)
-    db3 = np.sum(dz3, axis=0, keepdims=True)
-
-    da2 = np.dot(dz3, W3.T)
-    dz2 = np.multiply(da2, a2 * (1-a2))
-    dW2 = np.dot(a1.T, dz2)
-    db2 = np.sum(dz2, axis=0, keepdims=True)
-
-    da1 = np.dot(dz2, W2.T)
-    dz1 = np.multiply(da1, a1 * (1-a1))
-    dW1 = np.dot(data.T, dz1)
-    db1 = np.sum(dz1, axis=0, keepdims=True)
-
     grad = dict()
-    grad['W1'] = dW1 / B
-    grad['b1'] = db1 / B
-    grad['W2'] = dW2 / B
-    grad['b2'] = db2 / B
-    grad['W3'] = dW3 / B
-    grad['b3'] = db3 / B
+
+    for layer in np.arange(N+1, 0, -1):
+        weight_key, bias_key = get_weight_bias_key(layer)
+        score_key, activation_key = get_score_activation_key(layer)
+        score_key_prev, activation_key_prev = get_score_activation_key(layer-1)
+
+        if(layer==N+1):
+            dz = -(labels - y_hat) 
+        else:
+            dz = np.multiply(grad[activation_key], params[activation_key] * (1-params[activation_key]))
+
+        if(layer>1):
+            dW = np.dot(params[activation_key_prev].T, dz)
+        else:
+            dW = np.dot(data.T, dz)
+
+        db = np.sum(dz, axis=0, keepdims=True)
+        da_prev = np.dot(dz, params[weight_key].T)
+
+        grad[activation_key_prev] = da_prev
+        grad[score_key] = dz
+        grad[weight_key] = dW
+        grad[bias_key] = db
+
+    for layer in np.arange(N+1, 0, -1):
+        weight_key, bias_key = get_weight_bias_key(layer)
+        grad[weight_key] /= B
+        grad[bias_key] /= B
 
     if(reg>0):
-        grad['W1'] += 2 * reg * W1
-        grad['W2'] += 2 * reg * W2
-        grad['W3'] += 2 * reg * W3
+        for layer in np.arange(N+1, 0, -1):
+            weight_key, bias_key = get_weight_bias_key(layer)
+            grad[weight_key] += 2 * reg * params[weight_key]
 
     return grad
     # *** END CODE HERE ***
@@ -181,8 +193,7 @@ def run_trainning(args, data, labels):
 
     # get the training parameters
     num_epochs = args.num_epochs
-    num_hidden1 = args.num_hidden1
-    num_hidden2 = args.num_hidden2
+    num_hidden_layers = args.num_hidden_layers
     batch_size = args.batch_size
     reg = args.reg
     learning_rate = args.learning_rate
@@ -198,9 +209,10 @@ def run_trainning(args, data, labels):
 
     # *** START CODE HERE ***
     # initialize the parameters
-    params = initialize_params(dim, num_hidden1, num_hidden2, 10)
+    params = initialize_params(dim, num_hidden_layers, 10)
     # *** END CODE HERE ***
 
+    num_layers = len(num_hidden_layers) + 1
     num_iter = int(N / batch_size)
 
     loss_train = []
@@ -228,12 +240,10 @@ def run_trainning(args, data, labels):
             grad = backward_pass(data, labels, params, reg)
 
             # perform gradient descent step
-            params['W1'] -= learning_rate * grad['W1']
-            params['b1'] -= learning_rate * grad['b1']
-            params['W2'] -= learning_rate * grad['W2']
-            params['b2'] -= learning_rate * grad['b2']
-            params['W3'] -= learning_rate * grad['W3']
-            params['b3'] -= learning_rate * grad['b3']
+            for layer in range(num_layers):
+                weight_key, bias_key = get_weight_bias_key(layer+1)
+                params[weight_key] -= learning_rate * grad[weight_key]
+                params[bias_key] -= learning_rate * grad[bias_key]
             # *** END CODE HERE ***
 
         # after one epoch, compute training loss and accuracy
@@ -252,13 +262,12 @@ def run_trainning(args, data, labels):
 
     return params, loss_train, loss_val, accu_train, accu_val
 
-def _parse_args():
+def add_args():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Three-layer MLP for MNIST classsification")
+    parser = argparse.ArgumentParser(description="N-layer MLP for MNIST classsification")
 
     parser.add_argument('--num_epochs', type=int, default=30, help='number of epochs to train')
-    parser.add_argument('--num_hidden1', type=int, default=200, help='size for the first hidden layer')
-    parser.add_argument('--num_hidden2', type=int, default=100, help='size for the second hidden layer')
+    parser.add_argument("--num_hidden_layers", type=int, nargs="+", default=[200, 100])
     parser.add_argument('--batch_size', type=int, default=1000, help='batch size')
     parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
     parser.add_argument('--learning_rate', type=float, default=5.0, help='learn rate')
@@ -266,18 +275,17 @@ def _parse_args():
     parser.add_argument(
         "--training_record",
         type=str,
-        default="base_line",
+        default="base_line_N_layer_MLP",
         help='String to record this training')
 
     parser.add_argument('--one_batch_training', type=bool, default=False, help='if True, train with only one batch, for debugging purpose')
 
-    args = parser.parse_args()
-    return args
+    return parser
 
 def main():
 
     # load parameters
-    args = _parse_args()
+    args = add_args().parse_args()
     print(args)
 
     # make sure results are more reproducible
@@ -307,7 +315,7 @@ def main():
     ax2.plot(np.arange(args.num_epochs), accu_val, 'b', label='validation')
     ax2.set_xlabel('epochs')
     ax2.set_ylabel('accuracy')
-    ax2.set_title(args.training_record)
+    ax2.set_title(f'%s for %d hidden layers' % (args.training_record, len(args.num_hidden_layers)))
     ax2.legend()
 
     fig.savefig(os.path.join(Project_DIR, '../results/' + args.training_record + '.pdf'))

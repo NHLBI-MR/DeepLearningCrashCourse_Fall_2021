@@ -114,3 +114,27 @@ def sigmoid(x):
     """
     z = 1 / (1 + np.exp(-x))
     return z
+
+def get_weight_bias_key(layer):
+    """generate the key for weights and biases
+
+    Inputs:
+        layer : indicate which layer it is for. The first hidden layer is layer 1
+
+    Outputs: 
+        key for weights and biases in the format of 'W1', 'b1' ...
+    """
+
+    return f'W%d' % layer, f'b%d' % layer
+
+def get_score_activation_key(layer):
+    """generate the key for score and activation, used for backprop
+
+    Inputs:
+        layer : indicate which layer it is for. The first hidden layer is layer 1
+
+    Outputs: 
+        key for score and activation in the format of 'z1', 'a1' ...
+    """
+
+    return f'z%d' % layer, f'a%d' % layer
