@@ -66,7 +66,7 @@ def forward_pass(data, labels, params):
     """
     # *** START CODE HERE ***
     B, K = data.shape
-    
+
     W1 = params['W1']
     b1 = params['b1']
     W2 = params['W2']
@@ -141,7 +141,6 @@ def backward_pass(data, labels, params, reg):
     dz1 = np.multiply(da1, a1 * (1-a1))
     dW1 = np.dot(data.T, dz1)
     db1 = np.sum(dz1, axis=0, keepdims=True)
-    # *** END CODE HERE ***
 
     grad = dict()
     grad['W1'] = dW1 / B
@@ -157,7 +156,6 @@ def backward_pass(data, labels, params, reg):
         grad['W3'] += 2 * reg * W3
 
     return grad
-
     # *** END CODE HERE ***
 
 def run_trainning(args, data, labels):
@@ -190,8 +188,10 @@ def run_trainning(args, data, labels):
 
     (N, dim) = train_data.shape
 
+    # *** START CODE HERE ***
     # initialize the parameters
     params = initialize_params(dim, num_hidden1, num_hidden2, 10)
+    # *** END CODE HERE ***
 
     num_iter = int(N / batch_size)
 
@@ -206,6 +206,7 @@ def run_trainning(args, data, labels):
         # go through all mini-batches for this epoch
         for iter in range(num_iter):
 
+            # *** START CODE HERE ***
             # get a mini-batch
             ind_s = iter*batch_size
             ind_e = ind_s + batch_size
@@ -225,6 +226,7 @@ def run_trainning(args, data, labels):
             params['b2'] -= learning_rate * grad['b2']
             params['W3'] -= learning_rate * grad['W3']
             params['b3'] -= learning_rate * grad['b3']
+            # *** END CODE HERE ***
 
         # after one epoch, compute training loss and accuracy
         train_loss, y_hat, params = forward_pass(train_data, train_labels, params)
