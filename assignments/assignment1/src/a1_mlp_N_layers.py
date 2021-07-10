@@ -1,6 +1,7 @@
 ##################################################
 ## Deep learning crash course, assignment 1
 ##################################################
+## Description : the N-layer MLP model
 ## Author: Hui Xue
 ## Copyright: 2021, All rights reserved
 ## Version: 1.0.1
