@@ -267,10 +267,10 @@ def add_args():
     parser = argparse.ArgumentParser(description="N-layer MLP for MNIST classsification")
 
     parser.add_argument('--num_epochs', type=int, default=30, help='number of epochs to train')
-    parser.add_argument("--num_hidden_layers", type=int, nargs="+", default=[200, 100])
+    parser.add_argument("--num_hidden_layers", type=int, nargs="+", default=[300, 200, 100])
     parser.add_argument('--batch_size', type=int, default=1000, help='batch size')
     parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
-    parser.add_argument('--learning_rate', type=float, default=5.0, help='learn rate')
+    parser.add_argument('--learning_rate', type=float, default=1.0, help='learn rate')
 
     parser.add_argument(
         "--training_record",
