@@ -1,9 +1,19 @@
+##################################################
+## Deep learning crash course, assignment 1
+##################################################
+## Author: Hui Xue
+## Copyright: 2021, All rights reserved
+## Version: 1.0.1
+## Mmaintainer: xueh2 @ github
+## Email: hui.xue@nih.gov
+## Status: active development
+##################################################
+
 import os
 import sys
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
 import argparse
 
 Project_DIR = Path(__file__).parents[0].resolve()
@@ -11,57 +21,48 @@ sys.path.insert(1, str(Project_DIR))
 
 from util import *
 
-def initialize_params(input_size, num_hidden1, num_hidden2, num_output):
+def initialize_params(num_input_layer, num_hidden1, num_hidden2, num_output):
     """
-    Compute the initial parameters for the neural network.
+    Initialize the model parameters.
 
-    This function should return a dictionary mapping parameter names to numpy arrays containing
-    the initial values for those parameters.
+    Weights are initialized with a random normal distribution.
+    Biases are initialized with zero.
 
-    There should be four parameters for this model:
-    W1 is the weight matrix for the hidden layer
-    b1 is the bias vector for the hidden layer
-    W2 is the weight matrix for the output layers
-    b2 is the bias vector for the output layer
+    Inputs:
+        num_input_layer : number of neurons in the input layer
+        num_hidden1 : number of neurons in the first hidden layer
+        num_hidden2 : number of neurons in the second hidden layer
+        num_output : number of neurons in the output layer
 
-    As specified in the PDF, weight matricesshould be initialized with a random normal distribution.
-    Bias vectors should be initialized with zero.
-    
-    Args:
-        input_size: The size of the input data dimension (784)
-        num_hidden: The number of hidden states
-        num_output: The number of output classes
-    
-    Returns:
-        A dict mapping parameter names to numpy arrays
+    Outputs:
+        params : a dictionary storing weights and biases, 
+        params['W1'], params['b1'], params['W2'], params['b2'], params['W2'], params['b3']
     """
 
     # *** START CODE HERE ***
     params = dict()
-    params['W1'] = np.random.randn(input_size, num_hidden1)
+    params['W1'] = np.random.randn(num_input_layer, num_hidden1)
     params['b1'] = np.zeros((1, num_hidden1))
-    params['W2'] = np.random.randn(num_hidden1, num_output)
-    params['b2'] = np.zeros((1, num_output))
+    params['W2'] = np.random.randn(num_hidden1, num_hidden2)
+    params['b2'] = np.zeros((1, num_hidden2))
+    params['W3'] = np.random.randn(num_hidden2, num_output)
+    params['b3'] = np.zeros((1, num_output))
     return params
     # *** END CODE HERE ***
 
-def forward_prop(data, labels, params):
+def forward_pass(data, labels, params):
     """
-    Implement the forward layer given the data, labels, and params.
-    
-    Args:
-        data: A numpy array containing the input
-        labels: A 1d numpy array containing the labels
-        params: A dictionary mapping parameter names to numpy arrays with the parameters.
-            This numpy array will contain W1, b1, W2 and b2
-            W1 and b1 represent the weights and bias for the hidden layer of the network
-            W2 and b2 represent the weights and bias for the output layer of the network
+    Implement the forward pass.
 
-    Returns:
-        A 3 element tuple containing:
-            1. A numpy array of the activations (after the sigmoid) of the hidden layer
-            2. A numpy array The output (after the softmax) of the output layer
-            3. The average loss for these data elements
+    Inputs:
+        data: [B, D] a mini-batch of samples
+        labels: [B, D], one-hot encoded labels for all samples
+        params: A dictionary contains W1, b1, W2, b2, W3 and b3
+
+    Outputs:
+        loss : the computed loss, a scalar
+        y_hat : [B, C], the probabilities for every class, every sample
+        params : You need to buffer the intermediate results for backprog. Store them in this dictionary
     """
     # *** START CODE HERE ***
     B, K = data.shape
@@ -70,66 +71,90 @@ def forward_prop(data, labels, params):
     b1 = params['b1']
     W2 = params['W2']
     b2 = params['b2']
-    
+    W3 = params['W3']
+    b3 = params['b3']
+
     z1 = data.dot(W1) + b1
     a1 = sigmoid(z1)
+
     z2 = a1.dot(W2) + b2
-    y_hat = softmax(z2)
+    a2 = sigmoid(z2)
+
+    z3 = a2.dot(W3) + b3
+    y_hat = softmax(z3)
 
     loss = -np.sum(np.multiply(labels, np.log(y_hat + 1e-8))) / B
-    return a1, y_hat, loss
+
+    params['z1'] = z1
+    params['a1'] = a1
+    params['z2'] = z2
+    params['a2'] = a2
+    params['z3'] = z3
+    params['y_hat'] = y_hat
+    
+    return loss, y_hat, params
     # *** END CODE HERE ***
 
-def backward_prop2(data, labels, params, a1, y_hat, reg):
+def backward_pass(data, labels, params, reg):
     """
-    Implement the backward propegation gradient computation step for a neural network
-    
-    Args:
-        data: A numpy array containing the input
-        labels: A 1d numpy array containing the labels
-        params: A dictionary mapping parameter names to numpy arrays with the parameters.
-            This numpy array will contain W1, b1, W2 and b2
-            W1 and b1 represent the weights and bias for the hidden layer of the network
-            W2 and b2 represent the weights and bias for the output layer of the network
-        forward_prop_func: A function that follows the forward_prop API above
+    Implement the backprop of the model and compute the gradient for all weights and biases.
 
-    Returns:
-        A dictionary of strings to numpy arrays where each key represents the name of a weight
-        and the values represent the gradient of the loss with respect to that weight.
-        
-        In particular, it should have 4 elements:
-            W1, W2, b1, and b2
+    Inputs:
+        data: [B, D] a mini-batch of samples
+        labels: [B, D], one-hot encoded labels for all samples
+        params: A dictionary contains weights and biases and intermediate results
+        reg : regularization strength
+
+    Outputs:
+        grad : a dictionary contains gradients for weights and biases
+        grad['W1'], grad['b1'], grad['W2'], grad['b2'], grad['W3'], grad['b3'] 
+
+    You need to compute the gradient of loss to all weights and biases, including taking derivatives through the softmax.
     """
     # *** START CODE HERE ***
     W1 = params['W1']
     b1 = params['b1']
     W2 = params['W2']
     b2 = params['b2']
+    W3 = params['W3']
+    b3 = params['b3']
+
+    z1 = params['z1']
+    a1 = params['a1']
+    z2 = params['z2']
+    a2 = params['a2']
+    z3 = params['z3']
+    y_hat = params['y_hat']
 
     B, K = data.shape
-    
-    #a1, y_hat, loss = forward_prop(data, labels, params)
-    
-    dz2 = -(labels - y_hat) 
+
+    dz3 = -(labels - y_hat) 
+    dW3 = np.dot(a2.T, dz3)
+    db3 = np.sum(dz3, axis=0, keepdims=True)
+
+    da2 = np.dot(dz3, W3.T)
+    dz2 = np.multiply(da2, a2 * (1-a2))
     dW2 = np.dot(a1.T, dz2)
     db2 = np.sum(dz2, axis=0, keepdims=True)
-    
+
     da1 = np.dot(dz2, W2.T)
     dz1 = np.multiply(da1, a1 * (1-a1))
-    
     dW1 = np.dot(data.T, dz1)
     db1 = np.sum(dz1, axis=0, keepdims=True)
     # *** END CODE HERE ***
-    
+
     grad = dict()
     grad['W1'] = dW1 / B
     grad['b1'] = db1 / B
     grad['W2'] = dW2 / B
     grad['b2'] = db2 / B
+    grad['W3'] = dW3 / B
+    grad['b3'] = db3 / B
 
     if(reg>0):
         grad['W1'] += 2 * reg * W1
         grad['W2'] += 2 * reg * W2
+        grad['W3'] += 2 * reg * W3
 
     return grad
 
@@ -188,27 +213,29 @@ def run_trainning(args, data, labels):
             labels = train_labels[ind_s:ind_e, :]
 
             # forward pass
-            a1, y_hat, loss = forward_prop(data, labels, params)
+            loss, y_hat, params = forward_pass(data, labels, params)
 
             # backprop
-            grad = backward_prop2(data, labels, params, a1, y_hat, reg)
+            grad = backward_pass(data, labels, params, reg)
 
             # perform gradient descent step
             params['W1'] -= learning_rate * grad['W1']
             params['b1'] -= learning_rate * grad['b1']
             params['W2'] -= learning_rate * grad['W2']
             params['b2'] -= learning_rate * grad['b2']
+            params['W3'] -= learning_rate * grad['W3']
+            params['b3'] -= learning_rate * grad['b3']
 
         # after one epoch, compute training loss and accuracy
-        h, output, train_loss = forward_prop(train_data, train_labels, params)
+        train_loss, y_hat, params = forward_pass(train_data, train_labels, params)
         loss_train.append(train_loss)
-        train_accu = compute_accuracy(output, train_labels)
+        train_accu = compute_accuracy(y_hat, train_labels)
         accu_train.append(train_accu)
 
         # after one epoch, compute validation loss and accuracy
-        h, output, val_loss = forward_prop(val_data, val_labels, params)
+        val_loss, y_hat, params = forward_pass(val_data, val_labels, params)
         loss_val.append(val_loss)
-        val_accu = compute_accuracy(output, val_labels)
+        val_accu = compute_accuracy(y_hat, val_labels)
         accu_val.append(val_accu)
 
         print('epoch %d, train loss %f, accuracy %f - val loss %f, accuracy %f' % (epoch, train_loss, train_accu, val_loss, val_accu))
@@ -220,8 +247,8 @@ def _parse_args():
     parser = argparse.ArgumentParser(description="MLP for MNIST classsification")
 
     parser.add_argument('--num_epochs', type=int, default=30, help='number of epochs to train')
-    parser.add_argument('--num_hidden1', type=int, default=300, help='size for the first hidden layer')
-    parser.add_argument('--num_hidden2', type=int, default=300, help='size for the second hidden layer')
+    parser.add_argument('--num_hidden1', type=int, default=200, help='size for the first hidden layer')
+    parser.add_argument('--num_hidden2', type=int, default=100, help='size for the second hidden layer')
     parser.add_argument('--batch_size', type=int, default=1000, help='batch size')
     parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
     parser.add_argument('--learning_rate', type=float, default=5.0, help='learn rate')
@@ -274,8 +301,8 @@ def main():
     fig.savefig(os.path.join(Project_DIR, '../results/' + args.training_record + '.pdf'))
 
     # compute arraucy on the test dataset
-    h, output, cost = forward_prop(test_data, test_labels, params)
-    accuracy = compute_accuracy(output, test_labels)
+    test_loss, y_hat, params = forward_pass(test_data, test_labels, params)
+    accuracy = compute_accuracy(y_hat, test_labels)
     print('Test accuracy is %f for training run %s' % (accuracy, args.training_record))
 
 if __name__ == '__main__':
