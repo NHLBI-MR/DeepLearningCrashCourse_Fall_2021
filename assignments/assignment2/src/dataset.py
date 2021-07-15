@@ -95,30 +95,30 @@ if __name__ == "__main__":
     
     # disable the interactive plotting
     matplotlib.use("agg")
-    
+
     # load dataset
     cifar10_dataset = load_and_prepare_data(os.path.join(Project_DIR, "../data"), subtract_mean=False)
     
     with open(os.path.join(Project_DIR, "../data", "batches.meta"), "rb") as f:
         label_names = pickle.load(f, encoding="latin1")
-    
+
     # create result folder
     os.makedirs(os.path.join(Project_DIR, "../result"), exist_ok=True)
-    
+
     # plot the data
     f = plot_image_array(cifar10_dataset['X_train'][:,:,:,0:16], cifar10_dataset['Y_train'][0:16], label_names['label_names'], columns=4, figsize=[32, 32])
     f.savefig(os.path.join(Project_DIR, "../result", "cifar10_images.png"), dpi=300)
-    
+
     # test dataset
     train_set = Cifar10Dataset(cifar10_dataset['X_train'], cifar10_dataset['Y_train'], transform=None)
     print("Information for training set ... ", train_set)
     test_set = Cifar10Dataset(cifar10_dataset['X_test'], cifar10_dataset['Y_test'], transform=None)
     print("Information for test set ... ", test_set)
-    
+
     # create and load a batch
     batch_size = 16
     num_validation = 1000
-    
+
     dataset_size = len(train_set)
     dataset_indices = list(range(dataset_size))
     np.random.shuffle(dataset_indices)
@@ -129,18 +129,18 @@ if __name__ == "__main__":
     
     # no need to shuffle the test set
     loader_for_test = DataLoader(test_set, batch_size=batch_size)
-    
+
     # plot a batch
     iter_train = iter(loader_for_train)
     images, labels = iter_train.next()
     f = plot_image_array(np.transpose(images.numpy(), (2,3,1,0)), labels.numpy(), label_names['label_names'], columns=4, figsize=[32, 32])
     f.savefig(os.path.join(Project_DIR, "../result", "cifar10_train_batch.png"), dpi=300)
-    
+
     iter_val = iter(loader_for_val)
     images, labels = iter_val.next()
     f = plot_image_array(np.transpose(images.numpy(), (2,3,1,0)), labels.numpy(), label_names['label_names'], columns=4, figsize=[32, 32])
     f.savefig(os.path.join(Project_DIR, "../result", "cifar10_val_batch.png"), dpi=300)
-    
+
     iter_test = iter(loader_for_test)
     images, labels = iter_test.next()
     f = plot_image_array(np.transpose(images.numpy(), (2,3,1,0)), labels.numpy(), label_names['label_names'], columns=4, figsize=[32, 32])

@@ -277,7 +277,10 @@ def main():
 
     # load dataset
     cifar10_dataset = util.load_and_prepare_data(os.path.join(Project_DIR, "../data"), subtract_mean=True)
-    
+
+    # create result folder
+    os.makedirs(os.path.join(Project_DIR, "../result"), exist_ok=True)
+
     # perform training
     num_samples_validation = 1000
     model, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test = run_training(args, cifar10_dataset, num_samples_validation)
