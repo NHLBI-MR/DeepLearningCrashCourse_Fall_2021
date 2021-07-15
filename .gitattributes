@@ -1,1 +1,4 @@
 *.csv filter=lfs diff=lfs merge=lfs -text
+batch* filter=lfs diff=lfs merge=lfs -text
+test_batch filter=lfs diff=lfs merge=lfs -text
+batchs.meta filter=lfs diff=lfs merge=lfs -text

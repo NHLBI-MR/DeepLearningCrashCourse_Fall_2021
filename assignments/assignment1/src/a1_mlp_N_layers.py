@@ -171,7 +171,7 @@ def backward_pass(data, labels, params, reg):
     return grad
     # *** END CODE HERE ***
 
-def run_trainning(args, data, labels):
+def run_training(args, data, labels):
     """Run the training
 
     Inputs:
@@ -295,7 +295,7 @@ def main():
     train_data, train_labels, val_data, val_labels, test_data, test_labels = load_data(data_dir=os.path.join(Project_DIR, '../data'), force_loading=False)
 
     # perform training
-    params, loss_train, loss_val, accu_train, accu_val = run_trainning(
+    params, loss_train, loss_val, accu_train, accu_val = run_training(
                                                                         args, 
                                                                         {'train':train_data, 'val':val_data, 'test':test_data}, 
                                                                         {'train':train_labels, 'val':val_labels, 'test':test_labels}
