@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
 
 Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.append(str(Project_DIR))
@@ -73,13 +74,13 @@ class Cifar10Dataset(Dataset):
         
         if idx >= N:
             raise "invalid index"
-                        
-        sample = (self.images[idx,:,:,:], self.labels[idx])
-        
-        if self.transform:
-            sample = self.transform(sample)
 
-        return sample    
+        im = self.images[idx,:,:,:]
+        if self.transform:
+            # note the torchvision requires input image in [H, W, C]
+            im = self.transform(np.transpose(im, (1,2,0)))
+
+        return (im, self.labels[idx])
         # *** END CODE HERE ***
         
     def __str__(self):
@@ -115,6 +116,10 @@ if __name__ == "__main__":
     test_set = Cifar10Dataset(cifar10_dataset['X_test'], cifar10_dataset['Y_test'], transform=None)
     print("Information for test set ... ", test_set)
 
+    # directly get one sample
+    im, label = train_set[12]
+    print("Get one sample ", im.shape)
+
     # create and load a batch
     batch_size = 16
     num_validation = 1000
@@ -145,3 +150,19 @@ if __name__ == "__main__":
     images, labels = iter_test.next()
     f = plot_image_array(np.transpose(images.numpy(), (2,3,1,0)), labels.numpy(), label_names['label_names'], columns=4, figsize=[32, 32])
     f.savefig(os.path.join(Project_DIR, "../result", "cifar10_test_batch.png"), dpi=300)
+
+    # now, add some random transformation
+    transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=90.0)
+    ])
+
+    # set the transform
+    train_set.transform = transform
+
+    # now plot a batch
+    images, labels = iter_train.next()
+    f = plot_image_array(np.transpose(images.numpy(), (2,3,1,0)), labels.numpy(), label_names['label_names'], columns=4, figsize=[32, 32])
+    f.savefig(os.path.join(Project_DIR, "../result", "cifar10_train_batch_with_random_flipping.png"), dpi=300)

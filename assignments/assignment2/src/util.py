@@ -118,8 +118,8 @@ def plot_image_array(im, label, label_names, columns=4, figsize=[32, 32]):
             plt.imshow(im[:,:,:,i-1])
         else:
             plt.imshow(im)
-        plt.title(label_names[label[i-1]])
-               
+        plt.title(label_names[label[i-1]], fontsize=20)
+
         plt.axis('off')
     plt.show()
     

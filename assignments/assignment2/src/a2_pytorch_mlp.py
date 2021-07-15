@@ -28,6 +28,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
 
 class PytorchMLP(nn.Module):
     # def __init__(self, num_hidden_layers=[300, 200, 100]):
@@ -148,9 +149,17 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
     reg = args.reg
     learning_rate = args.learning_rate
     use_gpu = args.use_gpu
-    
+
+    # add some data transformation
+    transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5)
+    ])
+
     # set up the data loader
-    train_set = Cifar10Dataset(cifar10_dataset['X_train'], cifar10_dataset['Y_train'], transform=None)
+    train_set = Cifar10Dataset(cifar10_dataset['X_train'], cifar10_dataset['Y_train'], transform=transform)
+    # do not add data augmentation to test set !
     test_set = Cifar10Dataset(cifar10_dataset['X_test'], cifar10_dataset['Y_test'], transform=None)
     
     # create and load a batch    
@@ -165,7 +174,7 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
         train_idx, val_idx = dataset_indices[num_samples_validation:], dataset_indices[:num_samples_validation]
 
     loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
-    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
+    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx))
 
     H, W, C, B = cifar10_dataset['X_train'].shape
     
@@ -282,7 +291,7 @@ def main():
     os.makedirs(os.path.join(Project_DIR, "../result"), exist_ok=True)
 
     # perform training
-    num_samples_validation = 1000
+    num_samples_validation = 3000
     model, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test = run_training(args, cifar10_dataset, num_samples_validation)
 
     # print out accuracy
