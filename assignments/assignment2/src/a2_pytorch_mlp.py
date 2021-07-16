@@ -23,89 +23,14 @@ sys.path.insert(1, str(Project_DIR))
 
 from dataset import *
 import util
+import model
 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, sampler
 import torchvision.transforms as transforms
-
-class PytorchMLP(nn.Module):
-
-    def __init__(self, H, W, C, num_hidden_layers):
-        """Initial the model
-
-        Please create the pytorch layers for MLP. Please use ReLU as the nonlinear activation. 
-        Hints: torch.nn.Sequential may be useful. Also, check torch.nn.Linear and torch.nn.ReLU
-
-        Args:
-            H (int): Height of input image
-            W (int): Width of input image
-            C (int): Number of channels of input image
-            num_hidden_layers (list, optional): number of hidden layers. Defaults to [300, 300, 200, 100].
-        """
-        super().__init__()
-        
-        # *** START CODE HERE ***
-        self.blocks = nn.Sequential()
-        for i, num_neurons in enumerate(num_hidden_layers):
-            if(i==0):
-                input_dim = int(H*W*C)
-            else:
-                input_dim = num_hidden_layers[i-1]
-                
-            output_dim = num_neurons
-                
-            self.blocks.add_module("fc_%d" % i, nn.Linear(input_dim, output_dim, bias=True))
-            self.blocks.add_module("relu_%d" % i, nn.ReLU())
-                
-        self.blocks.add_module("fc_output", nn.Linear(output_dim, 10, bias=True))
-        
-        # *** END CODE HERE ***
-
-    def forward(self, x):
-        """Forward pass of MLP model
-
-        Args:
-            x ([B, C, H, W]): a batch of input image
-
-        Returns:
-            output ([B, 10]): logits tensor, ready for the softmax
-        """
-        # *** START CODE HERE ***
-        x = torch.flatten(x, 1)
-        x = self.blocks(x)
-        return x
-        # *** END CODE HERE ***        
-
-def compute_test_accuracy(loader, model, loss_func, device=torch.device('cpu')):
-    
-    running_loss_train = 0.0
-    total = 0
-    correct = 0
-    
-    model.eval()
-    with torch.no_grad():
-        for i, data in enumerate(loader, 0):
-            x, y = data            
-            x = x.to(device=device, dtype=torch.float32)
-            y = y.to(device=device, dtype=torch.long)
-                                          
-            y_hat = model(x)
-            loss = loss_func(y_hat, y)
-            
-            _, predicted = torch.max(y_hat.data, 1)
-            total += y.size(0)
-            correct += (predicted == y).sum().item()
-            
-            running_loss_train += loss.item()
-
-        loss = running_loss_train / (i+1)
-        accu = correct / total
-    
-    return loss, accu
-        
-        
+   
 def run_training(args, cifar10_dataset, num_samples_validation=1000):
     """Run the training
 
@@ -157,14 +82,14 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
     H, W, C, B = cifar10_dataset['X_train'].shape
     
     # declare the model
-    model = PytorchMLP(H, W, C, num_hidden_layers)      
-    print(model)        
+    m = model.PytorchMLP(H, W, C, num_hidden_layers)      
+    print(m)        
     
     # declare the loss function
     loss_func = nn.CrossEntropyLoss()
     
     # declare the optimizer
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=reg)
+    optimizer = optim.SGD(m.parameters(), lr=learning_rate, momentum=0.9, weight_decay=reg)
     
     # check the device
     device = util.find_GPU()
@@ -172,11 +97,11 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
         device = torch.device('cpu')
 
     if device != torch.device('cpu') and torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
+        m = nn.DataParallel(m)
         print(f"Train model on %d GPUs ... " % torch.cuda.device_count())
     
     # set model to device
-    model.to(device=device)
+    m.to(device=device)
 
     loss_train = []
     loss_val = []
@@ -186,7 +111,7 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
     # train for num_epochs
     for epoch in range(num_epochs):
 
-        model.train()
+        m.train()
         
         # go through all mini-batches for this epoch
         running_loss_train = 0.0
@@ -199,7 +124,7 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
                           
             # *** START CODE HERE ***  
             # forward pass, put the model output to y_hat
-            y_hat = model(x)
+            y_hat = m(x)
 
             # compute loss
             loss = loss_func(y_hat, y)
@@ -222,7 +147,7 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
         accu_train.append(running_accu_train/(i+1))
 
         # after one epoch, compute validation loss and accuracy
-        lv, av = compute_test_accuracy(loader_for_val, model, loss_func, device=device)
+        lv, av = model.compute_test_accuracy(loader_for_val, m, loss_func, device=device)
         loss_val.append(lv)
         accu_val.append(av)
 
@@ -231,9 +156,9 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
     # compute test accuracy
     test_set = Cifar10Dataset(cifar10_dataset['X_test'], cifar10_dataset['Y_test'], transform=None)
     loader_for_test = DataLoader(test_set, batch_size=args.batch_size)
-    loss_test, accu_test = compute_test_accuracy(loader_for_test, model, loss_func, device=device)
+    loss_test, accu_test = model.compute_test_accuracy(loader_for_test, m, loss_func, device=device)
     
-    return model, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test
+    return m, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test
 
 def add_args():
     """Parse command-line arguments."""
@@ -242,8 +167,8 @@ def add_args():
     parser.add_argument('--num_epochs', type=int, default=50, help='number of epochs to train')
     parser.add_argument("--num_hidden_layers", type=int, nargs="+", default=[300, 200, 200, 200, 100])
     parser.add_argument('--batch_size', type=int, default=256, help='batch size')
-    parser.add_argument('--reg', type=float, default=0.0025, help='regularization lambda')
-    parser.add_argument('--learning_rate', type=float, default=0.01, help='learn rate')
+    parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
+    parser.add_argument('--learning_rate', type=float, default=0.05, help='learn rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
 
     parser.add_argument(
@@ -270,7 +195,7 @@ def main():
 
     # perform training
     num_samples_validation = 3000
-    model, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test = run_training(args, cifar10_dataset, num_samples_validation)
+    m, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test = run_training(args, cifar10_dataset, num_samples_validation)
 
     # print out accuracy
     print('Train, validation and test accuracies are %f, %f, %f for experiment run %s' % (accu_train[args.num_epochs-1], accu_val[args.num_epochs-1], accu_test, args.training_record))
