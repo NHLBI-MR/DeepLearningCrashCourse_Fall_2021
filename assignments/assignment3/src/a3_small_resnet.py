@@ -1,7 +1,7 @@
 ##################################################
 ## Deep learning crash course, assignment 3
 ##################################################
-## Description : a CNN model, using pytorch and wandb
+## Description : a small resnet model, using pytorch and wandb
 ## Author: Hui Xue
 ## Copyright: 2021, All rights reserved
 ## Version: 1.0.1
@@ -23,7 +23,7 @@ sys.path.insert(1, str(Project_DIR))
 
 from cifar10dataset import *
 import util
-import model
+import resnet_model
 import train
 
 import torch.nn as nn
@@ -42,20 +42,14 @@ def add_args():
 
     parser.add_argument('--num_epochs', type=int, default=30, help='number of epochs to train')
     parser.add_argument('--batch_size', type=int, default=2048, help='batch size')
-    parser.add_argument('--reg', type=float, default=0.0025, help='regularization lambda')
+    parser.add_argument('--reg', type=float, default=0.005, help='regularization lambda')
     parser.add_argument('--learning_rate', type=float, default=0.002, help='learn rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
 
     parser.add_argument(
-        "--use_mobile_net_conv",
-        action="store_true",
-        help="If set, use the seperable convolution",
-    )
-
-    parser.add_argument(
         "--training_record",
         type=str,
-        default="pytorch_small_cnn",
+        default="pytorch_small_resnet",
         help='String to record this training')
     
     parser.add_argument(
@@ -74,9 +68,6 @@ num_samples_validation = 3000
 # load dataset
 cifar10_dataset = util.load_and_prepare_data(os.path.join(Project_DIR, "../data/cifar10"), subtract_mean=True)
 
-# create result folder
-os.makedirs(os.path.join(Project_DIR, "../result/cifar10"), exist_ok=True)
-
 # load parameters
 args = add_args().parse_args()
 print(args)
@@ -87,8 +78,7 @@ config_defaults = {
         'learning_rate': args.learning_rate,
         'optimizer': args.optimizer,
         'reg': args.reg,
-        'use_gpu' : args.use_gpu,
-        'use_mobile_net_conv' : args.use_mobile_net_conv
+        'use_gpu' : args.use_gpu
     }
 
 # ----------------------------------
@@ -96,13 +86,8 @@ config_defaults = {
 def run_training():
     """Run the training
 
-    Inputs:
-        args : arguments
-        cifar10_dataset : dataset loaded with utility functions
-        num_samples_validation : number of samples for validation
-
     Outputs:
-        model : model after training
+        model : best model after training
         loss_train, loss_val : loss for every epoch
         accu_train, accu_val : accuracy for every epoch
     """
@@ -122,7 +107,7 @@ def run_training():
 
     # *** START CODE HERE ***
     # declare the model m
-    m = model.Cifar10SmallCNN(H, W, C, config.use_mobile_net_conv)
+    m = resnet_model.Cifar10SmallResNet(H, W, C)
     print(m)
 
     # declare the loss function, loss_func
@@ -158,7 +143,7 @@ def main():
 
     moment = strftime("%Y%m%d_%H%M%S", gmtime())
 
-    wandb.init(project="A3_Pytorch_small_cnn", config=config_defaults, tags=moment)
+    wandb.init(project="A3_Pytorch_small_resnet", config=config_defaults, tags=moment)
     wandb.watch_called = False
 
     # perform training
