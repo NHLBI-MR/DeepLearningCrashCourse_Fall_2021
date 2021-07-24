@@ -26,6 +26,13 @@ def compute_accuracy(output, labels):
     accuracy = (pred == labels).sum().item() * 1. / labels.shape[0]
     return accuracy
 
+def dice_coeff(y_pred, y):
+    a = y_pred.view(-1).float()
+    b = y.view(-1).float()
+    inter = torch.dot(a, b) + 0.0001
+    union = torch.sum(a) + torch.sum(b) + 0.0001
+    return 2*inter.float()/union.float()
+
 def load_cifar_10_batch(filename):
     """
     Load a batch from cifar 10 dataset
@@ -115,10 +122,11 @@ def plot_image_array(im, label, label_names, columns=4, figsize=[32, 32]):
     for i in range(1, N+1):
         fig.add_subplot(rows, columns, i)
         if(len(im.shape)==4):
-            plt.imshow(im[:,:,:,i-1])
+            plt.imshow(np.clip(im[:,:,:,i-1], 0, 1.0))
         else:
-            plt.imshow(im)
-        plt.title(label_names[label[i-1]], fontsize=20)
+            plt.imshow(np.clip(im, 0, 1.0))
+        if(label_names is not None):
+            plt.title(label_names[label[i-1]], fontsize=20)
 
         plt.axis('off')
     plt.show()

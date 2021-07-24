@@ -129,10 +129,11 @@ def run_training():
         device = torch.device('cpu')
 
     # run the training
-    m, loss_train, loss_val, accu_train, accu_val = train.run_training_loop(m, loss_func, optimizer, scheduler, loader_for_train, loader_for_val, wandb, config, device)
+    trainer = train.Trainer(x_dtype=torch.float32, y_dytpe=torch.long, device=device)
+    m, loss_train, loss_val, accu_train, accu_val = trainer.run_training_loop(m, loss_func, optimizer, scheduler, loader_for_train, loader_for_val, wandb, config)
 
     # compute test accuracy
-    loss_test, accu_test = train.compute_test_accuracy(loader_for_test, m, loss_func, device=device)
+    loss_test, accu_test = trainer.compute_test_accuracy(loader_for_test, m, loss_func)
 
     wandb.log({"loss_test":loss_test})
     wandb.log({"accu_test":accu_test})

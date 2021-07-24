@@ -98,7 +98,7 @@ class Cifar10SmallResNet(nn.Module):
     def __init__(self, H, W, C):
         """Initial the model
 
-        Please create the pytorch layers for the small CNN wit the following architecture: 
+        Please create the pytorch layers for the small CNN with the following architecture: 
 
         Im -> CONV(5x5, 32) -> ResBlock(3x3, 32) -> ResBlock(3x3, 32) -> ResBlockDownSample(3x3, 64) -> ResBlock(3x3, 64) -> ResBlock(3x3, 64) -> ResBlockDownSample(3x3, 128) -> ResBlock(3x3, 128) -> ResBlock(3x3, 128) -> ResBlockDownSample(3x3, 256) -> BatchNorm2d -> ReLU -> CONV(1x1, 512) -> BatchNorm2d -> ReLU -> CONV(?x?, 512) -> flatten -> FC-256 -> BatchNorm1d -> ReLU -> FC-10
 

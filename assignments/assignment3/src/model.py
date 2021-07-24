@@ -185,7 +185,7 @@ class Cifar10SmallCNN(nn.Module):
     def __init__(self, H, W, C, use_mobile_net_conv=False):
         """Initial the model
 
-        Please create the pytorch layers for the small CNN wit the following architecture: 
+        Please create the pytorch layers for the small CNN with the following architecture: 
 
         Im -> Block(5x5, 32) -> BlockDownSample(5x5, 64) -> Block(3x3, 64) -> BlockDownSample(3x3, 128) -> Block(3x3, 128) -> BlockDownSample(3x3, 256) -> Block(3x3, 256) -> flatten -> FC-256 -> BatchNorm1d -> ReLU -> FC-10
 
