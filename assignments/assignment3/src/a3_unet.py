@@ -14,6 +14,7 @@ import os
 import sys
 from pathlib import Path
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import argparse
 from time import gmtime, strftime
@@ -35,15 +36,18 @@ import torchvision.transforms as transforms
 # get the wandb
 import wandb
 
+# disable the interactive plotting
+matplotlib.use("agg")
+
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Pytorch CNN model for Cifar10 classification, using wandb")
 
     parser.add_argument('--num_epochs', type=int, default=15, help='number of epochs to train')
-    parser.add_argument('--batch_size', type=int, default=256, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=128, help='batch size')
     parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
-    parser.add_argument('--learning_rate', type=float, default=0.002, help='learn rate')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
 
     parser.add_argument(
@@ -164,21 +168,18 @@ def run_training():
     probs = torch.sigmoid(y_hat.detach().cpu())
 
     # plot test batch
-    columns = int(config.batch_size/4)
-    if(columns==0): 
-        columns=config.batch_size
-
+    columns = 4
     figsize=[32, 32]
 
-    f = plot_image_array(np.transpose(test_images.cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
+    f = plot_image_array(np.transpose(test_images[0:16, :].cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
     f.savefig(os.path.join(result_dir, "carvana_test_batch_for_trained_model.png"), dpi=300)
     wandb.log({"carvana_test_batch_for_trained_model":f})
 
-    f = plot_image_array(np.transpose(test_masks.cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
+    f = plot_image_array(np.transpose(test_masks[0:16, :].cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
     f.savefig(os.path.join(result_dir, "carvana_test_batch_masks_for_trained_model.png"), dpi=300)
     wandb.log({"carvana_test_batch_masks_for_trained_model":f})
 
-    f = plot_image_array(np.transpose(probs.cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
+    f = plot_image_array(np.transpose(probs[0:16, :].cpu().numpy(), (2,3,1,0)), test_masks.numpy(), None, columns=columns, figsize=figsize)
     f.savefig(os.path.join(result_dir, "carvana_test_batch_results_for_trained_model.png"), dpi=300)
     wandb.log({"carvana_test_batch_results_for_trained_model":f})
 
