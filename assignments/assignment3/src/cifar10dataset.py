@@ -93,7 +93,7 @@ class Cifar10Dataset(Dataset):
             
         return str
     
-def set_up_cifar_10_dataset(cifar10_dataset, num_samples_validation=3000, batch_size=64):
+def set_up_cifar_10_dataset(cifar10_dataset, num_samples_validation=3000, batch_size=64, with_sampler=True):
     """Set up the cifar 10 dataset
 
     Args:

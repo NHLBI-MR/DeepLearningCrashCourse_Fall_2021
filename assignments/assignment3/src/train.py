@@ -36,7 +36,7 @@ class Trainer(object):
         self.y_dtype = y_dtype
         self.device = device
 
-    def compute_accuracy(output, labels):
+    def compute_accuracy(self, output, labels):
         _, pred = torch.max(output, 1)
         accuracy = (pred == labels).sum().item() * 1. / labels.shape[0]
         return accuracy

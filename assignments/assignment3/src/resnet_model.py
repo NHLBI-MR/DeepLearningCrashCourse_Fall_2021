@@ -106,7 +106,6 @@ class Cifar10SmallResNet(nn.Module):
             H (int): Height of input image
             W (int): Width of input image
             C (int): Number of channels of input image
-            use_mobile_net_conv (bool): If True, use the seperable convolution
         """
         super().__init__()
 
@@ -152,7 +151,7 @@ class Cifar10SmallResNet(nn.Module):
         # *** END CODE HERE ***
 
     def forward(self, x):
-        """Forward pass of MLP model
+        """Forward pass of resnet model
 
         Args:
             x ([B, C, H, W]): a batch of input image

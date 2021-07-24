@@ -144,7 +144,7 @@ def run_training():
         device = torch.device('cpu')
 
     # run the training
-    trainer = train.Trainer(x_dtype=torch.float32, y_dytpe=torch.long, device=device)
+    trainer = train.Trainer(x_dtype=torch.float32, y_dtype=torch.long, device=device)
     m, loss_train, loss_val, accu_train, accu_val = trainer.run_training_loop(m, loss_func, optimizer, scheduler, loader_for_train, loader_for_val, wandb, config)
 
     # compute test accuracy
