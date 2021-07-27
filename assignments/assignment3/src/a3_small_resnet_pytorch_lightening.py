@@ -237,7 +237,7 @@ class Cifar10SmallResNetLightning(pl.LightningModule):
     def configure_optimizers(self):
         # *** START CODE HERE ***
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=self.hparams.reg)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, 5, gamma=0.5, last_epoch=-1, verbose=True)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, 5, gamma=0.5, last_epoch=-1, verbose=False)
         # *** END CODE HERE ***
         return {'optimizer': optimizer, 
                 'lr_scheduler': {
