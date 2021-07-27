@@ -82,6 +82,9 @@ config_defaults = {
         'use_gpu' : args.use_gpu
     }
 
+result_dir = os.path.join(Project_DIR, "../result/carvana")
+os.makedirs(result_dir, exist_ok=True)
+
 # ----------------------------------
         
 def run_training():
@@ -106,9 +109,6 @@ def run_training():
 
     test_dir = os.path.join(Project_DIR, "../data/carvana/test_dlcc")
     test_mask_dir = os.path.join(Project_DIR, "../data/carvana/test_masks_dlcc")
-
-    result_dir = os.path.join(Project_DIR, "../result/carvana")
-    os.makedirs(result_dir, exist_ok=True)
 
     train_set, test_set, loader_for_train, loader_for_val, loader_for_test = set_up_carvana_dataset(train_dir, train_mask_dir, test_dir, test_mask_dir, num_samples_validation=num_samples_validation, batch_size=config.batch_size)
 
@@ -197,6 +197,10 @@ def main():
 
     # print out accuracy
     print('Train, validation and test accuracies are %f, %f, %f for experiment run %s' % (accu_train[args.num_epochs-1], accu_val[args.num_epochs-1], accu_test, args.training_record))
+    
+    # save the best model
+    model_file = os.path.join(result_dir, 'A3_Pytorch_unet_model_'+moment+'.pt')
+    torch.save({'model': m.state_dict(), 'training_time':moment, 'args':args}, model_file)
 
 if __name__ == '__main__':
     main()
