@@ -5,7 +5,7 @@
 ## Author: Hui Xue
 ## Copyright: 2021, All rights reserved
 ## Version: 1.0.1
-## Mmaintainer: xueh2 @ github
+## Maintainer: xueh2 @ github
 ## Email: hui.xue@nih.gov
 ## Status: active development
 ##################################################
