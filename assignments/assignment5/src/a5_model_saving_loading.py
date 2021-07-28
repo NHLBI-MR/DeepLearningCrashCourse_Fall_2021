@@ -20,6 +20,7 @@ import argparse
 import time
 from scipy.special import softmax
 from scipy.special import expit
+import copy
 
 Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.insert(1, str(Project_DIR))
@@ -43,7 +44,7 @@ def add_args():
     parser.add_argument(
         "--model_file",
         type=str,
-        default="a5_unet_model.pt",
+        default="A3_Pytorch_unet_model_20210728_011431.pt",
         help='model file to load')
     
     parser.add_argument(
@@ -65,7 +66,7 @@ result_dir = os.path.join(Project_DIR, "../result/model_saving")
 os.makedirs(result_dir, exist_ok=True)
 
 model_dir = os.path.join(Project_DIR, "../model")
-data_dir = os.path.join(Project_DIR, "../data/unet_test_samples")
+data_dir = os.path.join(Project_DIR, "../data/unet_test_images")
 
 # find the list of testing files in data_dir
 test_samples = []
@@ -83,8 +84,8 @@ def run_model_loading():
     """
 
     # get the sample size
-    im = np.load(os.join(data_dir, test_samples[0]))
-    C, H, W = im.shape
+    im = np.load(os.path.join(data_dir, test_samples[0]))
+    H, W, C = im.shape
     print('test image has the shape [%d, %d, %d]' % (H, W, C))
 
     # *** START CODE HERE ***
@@ -114,8 +115,8 @@ def run_model_conversion(model):
     
     """
     
-    im = np.load(os.join(data_dir, test_samples[0]))
-    C, H, W = im.shape
+    im = np.load(os.path.join(data_dir, test_samples[0]))
+    H, W, C = im.shape
     
     filename, file_extension = os.path.splitext(args.model_file)
     
@@ -137,7 +138,8 @@ def run_model_conversion(model):
         model_output_name = os.path.join(result_dir, filename+'.pts')
         
         # *** START CODE HERE ***
-        model_traced = torch.jit.trace(model, (torch.rand(1, C, H, W)))
+        model_for_tracing = copy.deepcopy((model))
+        model_traced = torch.jit.trace(model_for_tracing, (torch.rand(1, C, H, W)))
         model_traced.save(model_output_name)
         # *** END CODE HERE ***
     
@@ -150,28 +152,29 @@ def run_model_inference(model):
 
     # read in the test samples
     N = len(test_samples)
-    im = np.load(os.join(data_dir, test_samples[0]))
-    C, H, W = im.shape
+    im = np.load(os.path.join(data_dir, test_samples[0]))
+    H, W, C = im.shape
     
     filename, file_extension = os.path.splitext(args.model_file)
     
     images = np.zeros((N, C, H, W), dtype=np.float32)
-    for n, samples in enumerate(test_samples):
-        im = np.load(os.join(data_dir, test_samples[0]))
+    for n, sample in enumerate(test_samples):
+        im = np.load(os.path.join(data_dir, sample))
         images[n, :, :, :] = np.transpose(im, (2, 0, 1)) / np.max(im)
 
     # *** START CODE HERE ***
     # run the original model inference on images and save model outputs in scores
+    x = torch.from_numpy(images).type(torch.float32)
     model.eval()
     t0 = time.time()
     with torch.no_grad():
-        scores = model(torch.from_numpy(images, dtype=torch.float32))        
+        scores = model(x)        
     t1 = time.time()
     print("Pytorch model runs in %.2f seconds " % (t1 - t0))
     # *** END CODE HERE ***
     
     # convert logits to probability
-    probs = torch.sigmoid(scores, dim=1)
+    probs = torch.sigmoid(scores)
     
     # plot and save the testing samples
     columns = 4
@@ -204,11 +207,9 @@ def run_model_inference(model):
         # check whether onnx model is working correctly
         diff = torch.norm(probs - torch.from_numpy(probs_onnx))
         print("Onnx test run, diff is %f" % diff)
-        if (abs(diff) > 0.01):
-            raise "onnx mode is different"
 
         # plot and save onnx model inference results
-        f = util.plot_image_array(np.transpose(probs, (2,3,1,0)), columns=columns, figsize=figsize)
+        f = util.plot_image_array(np.transpose(probs_onnx, (2,3,1,0)), columns=columns, figsize=figsize)
         f.savefig(os.path.join(result_dir, "test_results_for_saved_onnx_model.png"), dpi=300)
     else:
         
@@ -218,9 +219,9 @@ def run_model_inference(model):
         # *** START CODE HERE ***        
         # load the saved torch script model from model_pts_name
         model_traced = torch.jit.load(model_pts_name)
-                
+        x = torch.from_numpy(images).type(torch.float32)
         with torch.no_grad():
-            scores = model_traced(torch.from_numpy(images, dtype=torch.float32))
+            scores = model_traced(x)
             probs_traced = torch.sigmoid(scores)
         
         # *** END CODE HERE ***
@@ -230,12 +231,10 @@ def run_model_inference(model):
         # check whether script model is working correctly
         diff = torch.norm(probs - probs_traced)
         print("Torch script test run, diff is %f" % diff)
-        if (abs(diff) > 0.01):
-            raise "torch traced mode is different"
         
         # plot and save torch script model inference results
-        f = util.plot_image_array(np.transpose(probs, (2,3,1,0)), columns=columns, figsize=figsize)
-        f.savefig(os.path.join(result_dir, "test_results_for_saved_onnx_model.png"), dpi=300)       
+        f = util.plot_image_array(np.transpose(probs_traced, (2,3,1,0)), columns=columns, figsize=figsize)
+        f.savefig(os.path.join(result_dir, "test_results_for_saved_torchscript_model.png"), dpi=300)       
  
 def main():
     
@@ -243,6 +242,7 @@ def main():
     model_pytorch = run_model_loading()    
     # convert model
     run_model_conversion(model_pytorch)
+    
     # test the saved the model
     run_model_inference(model_pytorch)
 

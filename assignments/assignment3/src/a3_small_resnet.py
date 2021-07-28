@@ -10,6 +10,12 @@
 ## Status: active development
 ##################################################
 
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
+
 import os
 import sys
 from pathlib import Path
@@ -25,13 +31,7 @@ from cifar10dataset import *
 import util
 import resnet_model
 import train
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, sampler
-import torchvision.transforms as transforms
-   
+  
 # get the wandb
 import wandb
 
@@ -80,6 +80,9 @@ config_defaults = {
         'reg': args.reg,
         'use_gpu' : args.use_gpu
     }
+
+result_dir = os.path.join(Project_DIR, "../result/cifar10")
+os.makedirs(result_dir, exist_ok=True)
 
 # ----------------------------------
         
@@ -152,6 +155,11 @@ def main():
 
     # print out accuracy
     print('Train, validation and test accuracies are %f, %f, %f for experiment run %s' % (accu_train[args.num_epochs-1], accu_val[args.num_epochs-1], accu_test, args.training_record))
+    
+    # save the model
+    model_file = os.path.join(result_dir, 'A3_Pytorch_small_resnet_'+moment+'.pt')
+    print("Save model to ", model_file)
+    torch.save({'model': m.state_dict(), 'training_time':moment, 'args':args}, model_file)
     
 if __name__ == '__main__':
     main()

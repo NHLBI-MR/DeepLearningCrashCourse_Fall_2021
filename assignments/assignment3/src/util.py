@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from six.moves import cPickle as pickle
 import torch
 
-# number of samples for validation, as the MNIST convention
 NUM_VALIDATION=1000
 
 def find_GPU():
