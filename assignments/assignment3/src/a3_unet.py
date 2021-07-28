@@ -198,6 +198,10 @@ def main():
 
     # print out accuracy
     print('Train, validation and test accuracies are %f, %f, %f for experiment run %s' % (accu_train[args.num_epochs-1], accu_val[args.num_epochs-1], accu_test, args.training_record))
+    
+    # save the best model
+    model_file = os.path.join(result_dir, 'A3_Pytorch_unet_model_'+moment+'.pt')
+    torch.save({'model': m.state_dict(), 'training_time':moment, 'args':args}, model_file)
 
     # save the model
     model_file = os.path.join(result_dir, 'A3_Pytorch_unet_model_'+moment+'.pt')
