@@ -1,7 +1,7 @@
 ##################################################
 ## Deep learning crash course, assignment 5
 ##################################################
-## Description : a small GAN network, using pytorch and wandb
+## Description : a small conditional GAN network, using pytorch and wandb
 ## Author: Hui Xue
 ## Copyright: 2021, All rights reserved
 ## Version: 1.0.1
@@ -41,7 +41,7 @@ matplotlib.use("agg")
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="A small GAN netwrok, using wandb")
+    parser = argparse.ArgumentParser(description="A small contional GAN netwrok, using wandb")
 
     parser.add_argument('--num_epochs', type=int, default=10, help='number of epochs to train')
     parser.add_argument('--batch_size', type=int, default=256, help='batch size')
@@ -49,12 +49,11 @@ def add_args():
     parser.add_argument('--learning_rate', type=float, default=1e-3, help='learning rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
     parser.add_argument('--optim_step_D', type=int, default=2, help='number of optimization steps of discriminator in one iteration')
-    parser.add_argument('--wgan_lambda', type=float, default=10, help='regularization for gradient penalty in WGAN-GP')
 
     parser.add_argument(
         "--training_record",
         type=str,
-        default="pytorch_small_gan",
+        default="pytorch_small_conditional_gan",
         help='String to record this training')
     
     parser.add_argument(
@@ -63,12 +62,6 @@ def add_args():
         default="adam",
         help='Optimizer, sgd or adam')
     
-    parser.add_argument(
-        "--loss_type",
-        type=str,
-        default="gan",
-        help='GAN loss, gan for vanilla JSD loss; wgan for Wasserstein GAN loss with gradient penalty')
-
     return parser
 # ----------------------------------
 
@@ -83,18 +76,12 @@ config_defaults = {
         'optimizer': args.optimizer,
         'reg': args.reg,
         'use_gpu': args.use_gpu,
-        'optim_step_D': args.optim_step_D,
-        'loss_type': args.loss_type,
-        'wgan_lambda': args.wgan_lambda
+        'optim_step_D': args.optim_step_D
     }
 
 data_dir = os.path.join(Project_DIR, "../data/fashion_mnist")
 
-if(args.loss_type=='gan'):
-    result_dir = os.path.join(Project_DIR, "../result/small_gan")
-else:
-    result_dir = os.path.join(Project_DIR, "../result/small_wgan")
-    
+result_dir = os.path.join(Project_DIR, "../result/small_conditional_gan")
 os.makedirs(result_dir, exist_ok=True)
 
 # latent vector dimension
@@ -138,8 +125,8 @@ def run_training():
 
     # *** START CODE HERE ***
     # declare the generator and discriminator
-    G = gan.Generator(D=Dim).to(device=device)
-    D = gan.Discriminator(H, W, C).to(device=device)
+    G = gan.Generator(D=Dim, num_classes=10).to(device=device)
+    D = gan.Discriminator(H, W, C, num_classes=10).to(device=device)
 
     # declare the optimizer, check the config.optimizer and define optimizer, note to use config.learning_rate and config.reg
     if(config.optimizer=='sgd'):
@@ -155,6 +142,7 @@ def run_training():
 
     # run the training
     x_dtype=torch.float32
+    y_dtype=torch.long
 
     # run the GAN training
     
@@ -179,8 +167,9 @@ def run_training():
              
         for i, data in enumerate(loader_for_train, 0):
     
-            x, _ = data # we don't need label for a typical gan --> generative model
+            x, y = data
             x = x.to(device=device, dtype=x_dtype) 
+            y = y.to(device=device, dtype=y_dtype) 
                 
             for s in range(config.optim_step_D):
                 # create latent vectors
@@ -188,32 +177,13 @@ def run_training():
             
                 # compute ligits for real and fake samples
                 logits_real = D(x)
-                x_fake = G(z)
+                
+                one_hot_y = torch.eye(10, device=device)[y]
+                x_fake = G(torch.cat([z, one_hot_y], 1))
                 logits_fake = D(x_fake)
 
                 # compute loss for D
-                if(args.loss_type=='gan'):
-                    l_d = gan.loss_D(logits_real, logits_fake)
-                else:
-                    # this part is a bit involved, so it is provided to you
-                    # but please read and understand what is going on here
-                    
-                    # compute alpha
-                    alpha = torch.rand((config.batch_size, 1, 1, 1), device=device)
-                    
-                    # compute linear combination of real and fake samples
-                    s = (alpha * x_fake + (1-alpha) * x).requires_grad_(True)
-                    logits_s = D(s)
-                    
-                    # compute gradient
-                    grad_s = torch.autograd.grad(outputs=logits_s, inputs=s, grad_outputs=torch.ones_like(logits_s), create_graph=True, only_inputs=True)[0]
-                    grad_s = grad_s.view(grad_s.size(0), -1)
-                    # take the L2 norm and compute the GP penalty
-                    grad_s_norm = torch.norm(grad_s, dim=1, keepdim=True)
-                    reg_s = (grad_s_norm-1) ** 2
-                    
-                    # now we can get the WGAN-GP loss
-                    l_d = gan.wgan_loss_D(logits_real, logits_fake, reg_s, args.wgan_lambda)
+                l_d = gan.conditinal_loss_D(logits_real, logits_fake, y)
 
                 # optimize D
                 optimizer_D.zero_grad()
@@ -229,10 +199,7 @@ def run_training():
             logits_fake = D(x_fake)
             
             # compute loss for G   
-            if(args.loss_type=='gan'):         
-                l_g = gan.loss_G(logits_fake)
-            else:
-                l_g = gan.wgan_loss_G(logits_fake)
+            l_g = gan.conditinal_loss_G(logits_fake, y)
             
             # optimize G
             optimizer_G.zero_grad()
@@ -249,10 +216,13 @@ def run_training():
             if num_steps % step_to_sampling == 0:
                 with torch.no_grad():
                     G.eval()
-                    z = torch.randn(config.batch_size, Dim).to(device)
-                    x_sampled = 0.5 * (G(z) + 1.0)
+                    z = torch.randn(10*10, Dim).to(device)
+                    # we will conditional on labels
+                    y = torch.arange(10).repeat(10).to(device)
+                    one_hot_y = torch.eye(10, device=device)[y]
+                    x_sampled = 0.5 * (G(torch.cat([z, one_hot_y], 1)) + 1.0)
                     im_name = '%s/sampled_image_at_%04d.png' % (result_dir, num_steps)
-                    torchvision.utils.save_image(x_sampled, im_name, nrow=16)
+                    torchvision.utils.save_image(x_sampled, im_name, nrow=10)
                     im_label = "sample at %d" % (num_steps)
                     wandb.log({"steps": num_steps, im_label: wandb.Image(im_name)})
                     G.train()
@@ -268,10 +238,12 @@ def run_training():
     # create a final sample and save
     G.eval()    
     with torch.no_grad():        
-        z = torch.randn(config.batch_size, Dim).to(device)
-        x_sampled = 0.5 * (G(z) + 1.0)
+        z = torch.randn(10*10, Dim).to(device)
+        y = torch.arange(10).repeat(10).to(device)
+        one_hot_y = torch.eye(10, device=device)[y]
+        x_sampled = 0.5 * (G(torch.cat([z, one_hot_y], 1)) + 1.0)
         im_name = '%s/final_sampled_images.png' % (result_dir)
-        torchvision.utils.save_image(x_sampled, im_name, nrow=16)
+        torchvision.utils.save_image(x_sampled, im_name, nrow=10)
         wandb.log({"steps": num_steps,"final_sampled_images":wandb.Image(im_name)})
                         
     return G, D, G_loss, D_loss
@@ -280,10 +252,7 @@ def main():
 
     moment = strftime("%Y%m%d_%H%M%S", gmtime())
 
-    if(args.loss_type=='gan'):
-        wandb.init(project="A5_Pytorch_gan", config=config_defaults, tags=moment)
-    else:
-        wandb.init(project="A5_Pytorch_wgan", config=config_defaults, tags=moment)
+    wandb.init(project="A5_Pytorch_conditional_gan", config=config_defaults, tags=moment)
     wandb.watch_called = False
 
     # perform training
