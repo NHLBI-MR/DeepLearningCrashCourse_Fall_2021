@@ -129,11 +129,11 @@ if __name__ == "__main__":
     np.random.shuffle(dataset_indices)
     train_idx, val_idx = dataset_indices[num_validation:], dataset_indices[:num_validation]
 
-    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
-    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
+    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), pin_memory=True)
+    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), pin_memory=True)
     
     # no need to shuffle the test set
-    loader_for_test = DataLoader(test_set, batch_size=batch_size)
+    loader_for_test = DataLoader(test_set, batch_size=batch_size, pin_memory=True)
 
     # plot a batch
     iter_train = iter(loader_for_train)

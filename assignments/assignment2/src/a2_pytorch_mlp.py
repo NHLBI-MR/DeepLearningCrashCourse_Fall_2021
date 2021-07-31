@@ -76,13 +76,13 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
     else:
         train_idx, val_idx = dataset_indices[num_samples_validation:], dataset_indices[:num_samples_validation]
 
-    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
-    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx))
+    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), pin_memory=True)
+    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx), pin_memory=True)
 
     H, W, C, B = cifar10_dataset['X_train'].shape
     
     # declare the model
-    m = model.PytorchMLP(H, W, C, num_hidden_layers)      
+    m = model.PytorchMLP(H, W, C, num_hidden_layers)
     print(m)        
     
     # declare the loss function
@@ -155,7 +155,7 @@ def run_training(args, cifar10_dataset, num_samples_validation=1000):
 
     # compute test accuracy
     test_set = Cifar10Dataset(cifar10_dataset['X_test'], cifar10_dataset['Y_test'], transform=None)
-    loader_for_test = DataLoader(test_set, batch_size=args.batch_size)
+    loader_for_test = DataLoader(test_set, batch_size=args.batch_size, pin_memory=True)
     loss_test, accu_test = model.compute_test_accuracy(loader_for_test, m, loss_func, device=device)
     
     return m, loss_train, loss_val, loss_test, accu_train, accu_val, accu_test

@@ -47,7 +47,7 @@ class Test_Three_Layer_MLP(unittest.TestCase):
         # *** START CODE HERE ***
         # perform training
         t0 = time.time()
-        params, loss_train, loss_val, accu_train, accu_val = run_trainning(
+        params, loss_train, loss_val, accu_train, accu_val = run_training(
                                                                         self.args, 
                                                                         {'train':self.train_data, 'val':self.val_data, 'test':self.test_data}, 
                                                                         {'train':self.train_labels, 'val':self.val_labels, 'test':self.test_labels}

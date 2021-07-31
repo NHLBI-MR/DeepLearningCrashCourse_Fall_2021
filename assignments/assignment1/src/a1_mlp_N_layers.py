@@ -318,7 +318,9 @@ def main():
     ax2.set_title(f'%s for %d hidden layers' % (args.training_record, len(args.num_hidden_layers)))
     ax2.legend()
 
-    fig.savefig(os.path.join(Project_DIR, '../results/' + args.training_record + '.pdf'))
+    res_dir = os.path.join(Project_DIR, '../results')
+    os.makedirs(res_dir, exist_ok=True)
+    fig.savefig(os.path.join(res_dir, args.training_record + '.pdf'))
 
     # compute arraucy on the test dataset
     test_loss, y_hat, params = forward_pass(test_data, test_labels, params)
