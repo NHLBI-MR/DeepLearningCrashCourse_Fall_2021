@@ -8,3 +8,4 @@ charts.zip filter=lfs diff=lfs merge=lfs -text
 ling-spam.zip filter=lfs diff=lfs merge=lfs -text
 *.pt filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
+*.txt filter=lfs diff=lfs merge=lfs -text
