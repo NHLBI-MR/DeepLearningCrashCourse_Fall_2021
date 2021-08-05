@@ -84,7 +84,11 @@ def predict(net, char, h=None, top_k=None, device=torch.device('cpu')):
     net.to(device=device)
     
     # detach hidden state from history
-    h = tuple([each.data for each in h])
+    if(type(h) is tuple):
+        h = tuple([each.data for each in h])
+    else:
+        h = h.data
+        
     # get the output of the model
     out, h = net(inputs, h)
 

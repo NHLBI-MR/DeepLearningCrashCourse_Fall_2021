@@ -48,11 +48,11 @@ def add_args():
     parser = argparse.ArgumentParser(description="Pytorch RNN model for character level language model")
 
     parser.add_argument('--num_epochs', type=int, default=50, help='number of epochs to train')
-    parser.add_argument('--batch_size', type=int, default=128, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=256, help='batch size')
     parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
-    parser.add_argument('--seq_length', type=int, default=160, help='length of sequence')
+    parser.add_argument('--seq_length', type=int, default=256, help='length of sequence')
     parser.add_argument('--n_hidden', type=int, default=512, help='internal state dimension')
     parser.add_argument('--n_layers', type=int, default=4, help='number of layers for RNN')
     
@@ -67,6 +67,12 @@ def add_args():
         type=str,
         default="adam",
         help='Optimizer, sgd or adam')
+    
+    parser.add_argument(
+        "--rnn",
+        type=str,
+        default="lstm",
+        help='lstm or gru')
 
     return parser
 # ----------------------------------
@@ -84,7 +90,8 @@ config_defaults = {
         'reg': args.reg,
         'use_gpu' : args.use_gpu,
         'n_hidden' : args.n_hidden,
-        'n_layers' : args.n_layers
+        'n_layers' : args.n_layers,
+        'rnn' : args.rnn
     }
 
 result_dir = os.path.join(Project_DIR, "../result/char_rnn")
@@ -95,13 +102,13 @@ data_dir = os.path.join(Project_DIR, "../data/charRNN")
 device = util.find_GPU()
 
 # ----------------------------------
-class CharRNN(nn.Module):
+class char_rnn_lstm(nn.Module):
     
-    def __init__(self, n_tokens, n_hidden=512, n_layers=3, drop_prob=0.5):
-        """Declear the char RNN
+    def __init__(self, tokens, n_hidden=512, n_layers=3, drop_prob=0.5):
+        """Declear the char RNN with LSTM
 
         Args:
-            n_tokens (int): number of tokens
+            tokens : tokens for training
             n_hidden (int, optional): dimension of internal state of RNN. Defaults to 512.
             n_layers (int, optional): number of layers of RNN. Defaults to 3.
             drop_prob (float, optional): probability of dropout. Defaults to 0.5.
@@ -110,7 +117,10 @@ class CharRNN(nn.Module):
         self.drop_prob = drop_prob
         self.n_layers = n_layers
         self.n_hidden = n_hidden
-        self.n_tokens = n_tokens
+        self.chars = tokens
+        self.int2char = dict(enumerate(self.chars))
+        self.char2int = {ch: ii for ii, ch in self.int2char.items()}
+        self.n_tokens = len(self.chars)
                 
         # *** START CODE HERE ***
         # define a simple RNN
@@ -119,9 +129,9 @@ class CharRNN(nn.Module):
         # use drop out in LSTM
         # pls. check the LSTM at https://pytorch.org/docs/stable/generated/torch.nn.LSTM.html#torch.nn.LSTM
         
-        self.lstm = nn.LSTM(n_tokens, n_hidden, n_layers, dropout=drop_prob, batch_first=True)
+        self.lstm = nn.LSTM(self.n_tokens, n_hidden, n_layers, dropout=drop_prob, batch_first=True)
         self.dropout = nn.Dropout(drop_prob)
-        self.fc = nn.Linear(n_hidden, n_tokens)
+        self.fc = nn.Linear(n_hidden, self.n_tokens)
         # *** END CODE HERE ***
       
     def forward(self, x, hidden):
@@ -133,16 +143,18 @@ class CharRNN(nn.Module):
             hidden (tuple of two tensors) : hidden state and cell state of LSTM, [n_layers, n_batch_size, n_hidden]
             
         Outputs: 
-            out ([B, seq_length, n_tokens]) : output logits
+            out ([B*seq_length, n_tokens]) : output logits
             hidden (tuple of two tensors [n_layers, batch_size, n_hidden]) : updated hidden and cell states
+            
+        Note: the out is 2D tensor to call CE loss; you may want to use torch.reshape
         """
                 
         # *** START CODE HERE ***
         
         r_output, hidden = self.lstm(x, hidden)
-        out = self.dropout(r_output)
-        #out = out.contiguous().view(-1, self.n_hidden)
+        out = self.dropout(r_output)        
         out = self.fc(out)
+        out  = torch.reshape(out, (-1, self.n_tokens))
         
         # *** END CODE HERE ***
         
@@ -158,6 +170,71 @@ class CharRNN(nn.Module):
         hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device),
                   weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device))
         
+        return hidden
+    
+class char_rnn_gru(nn.Module):
+    
+    def __init__(self, tokens, n_hidden=512, n_layers=3, drop_prob=0.5):
+        """Declear the char RNN with GRU
+
+        Args:
+            tokens: tokens used for training
+            n_hidden (int, optional): dimension of internal state of RNN. Defaults to 512.
+            n_layers (int, optional): number of layers of RNN. Defaults to 3.
+            drop_prob (float, optional): probability of dropout. Defaults to 0.5.
+        """
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+        self.chars = tokens
+        self.int2char = dict(enumerate(self.chars))
+        self.char2int = {ch: ii for ii, ch in self.int2char.items()}
+        self.n_tokens = len(self.chars)
+                
+        # *** START CODE HERE ***
+        # define a simple GRU
+        # x -> GRU -> drop_out -> Linear layer
+        # note batch is the first dimension
+        # use drop out in GRU
+        # pls. check the GRU at https://pytorch.org/docs/stable/generated/torch.nn.GRU.html#torch.nn.GRU
+        
+        self.gru = nn.GRU(self.n_tokens, n_hidden, n_layers, dropout=drop_prob, batch_first=True)
+        self.dropout = nn.Dropout(drop_prob)
+        self.fc = nn.Linear(n_hidden, self.n_tokens)
+        # *** END CODE HERE ***
+      
+    def forward(self, x, hidden):
+        """Forward pass
+        
+        Args:
+        
+            x ([B, seq_length, n_tokens]) : one-hot-encoded batch, order of dimension is batch, time, token
+            hidden (tuple of two tensors) : hidden state and cell state of LSTM, [n_layers, n_batch_size, n_hidden]
+            
+        Outputs: 
+            out ([B*seq_length, n_tokens]) : output logits
+            hidden (tuple of two tensors [n_layers, batch_size, n_hidden]) : updated hidden and cell states
+            
+        Note: the out is 2D tensor to call CE loss; you may want to use torch.reshape
+        """
+                
+        # *** START CODE HERE ***
+        
+        r_output, hidden = self.gru(x, hidden)
+        out = self.dropout(r_output)        
+        out = self.fc(out)
+        out  = torch.reshape(out, (-1, self.n_tokens))
+        
+        # *** END CODE HERE ***
+        
+        return out, hidden
+    
+    
+    def init_hidden(self, batch_size):
+        ''' Initializes hidden state '''
+        weight = next(self.parameters()).data        
+        hidden = weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device)        
         return hidden
                           
 def run_training():
@@ -199,7 +276,11 @@ def run_training():
     data = np.array([char2int[ch] for ch in text])
 
     # declare the model
-    m = CharRNN(len(chars), config.n_hidden, config.n_layers)
+    if(config.rnn == 'lstm'):
+        m = char_rnn_lstm(chars, config.n_hidden, config.n_layers)
+    else:
+        m = char_rnn_gru(chars, config.n_hidden, config.n_layers)
+        
     print(m)
    
     # declare the loss function, loss_func
@@ -212,7 +293,7 @@ def run_training():
         optimizer = optim.Adam(m.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.reg)
 
     # declare the scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 10, gamma=0.5, last_epoch=-1, verbose=False)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 10, gamma=0.8, last_epoch=-1, verbose=False)
     
     # create training and validation data
     val_idx = int(len(data)*0.9)
@@ -244,13 +325,16 @@ def run_training():
             # Note here: for every batch, we want to use the previous hidden state and cell state
             # but we are not computing gradient flow between mini-batches; otherwise, network will be very deep
             # this is temporal truncation
-            h = tuple([each.data for each in h])
+            if(type(h) is tuple):
+                h = tuple([each.data for each in h])
+            else:
+                h = h.data
            
             # 2. perform foward pass
             output, h = m(inputs, h)
             
             # 3. compute loss
-            loss = loss_func(output.view(-1, m.n_tokens), targets.view(config.batch_size*config.seq_length))
+            loss = loss_func(output, torch.flatten(targets))
             
             # 4. zero grad
             optimizer.zero_grad()
@@ -287,15 +371,18 @@ def run_training():
 
                 x = util.one_hot_encode(x, m.n_tokens)
                 x, y = torch.from_numpy(x), torch.from_numpy(y)
-
-                val_h = tuple([each.data for each in val_h])
+               
+                if(type(h) is tuple):
+                    val_h = tuple([each.data for each in val_h])
+                else:
+                    val_h = val_h.data
                 
                 inputs, targets = x, y
                 inputs, targets = inputs.to(device=device), targets.to(device=device)
 
                 output, val_h = m(inputs, val_h)
-                val_loss = loss_func(output.view(-1, m.n_tokens), targets.view(config.batch_size*config.seq_length))
-            
+                val_loss = loss_func(output, torch.flatten(targets))
+                
                 val_losses.append(val_loss.item())
             
         t1_val = time.time()
@@ -305,9 +392,13 @@ def run_training():
         
         wandb.log({"epoch":e, "train loss":loss_train[e], "val loss":loss_val[e]})
         
+        content = util.sample(m, 512, prime='We, the people ', top_k=5, device=device)
+                
         str_after_val = '%.2f/%.2f seconds for Training/Validation - Tra loss = %.4f, Val loss = %.4f, - learning rate = %.6f' % (t1-t0, t1_val-t0_val, loss_train[e], loss_val[e], current_lr)
         tq.set_postfix_str(str_after_val)
         tq.close() 
+        
+        print(" --> sampled texts for this epoch :   ", content)
         
     # ----------------------------------------------
 
