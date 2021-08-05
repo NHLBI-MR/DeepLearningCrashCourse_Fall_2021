@@ -55,6 +55,7 @@ def add_args():
     parser.add_argument('--seq_length', type=int, default=256, help='length of sequence')
     parser.add_argument('--n_hidden', type=int, default=512, help='internal state dimension')
     parser.add_argument('--n_layers', type=int, default=4, help='number of layers for RNN')
+    parser.add_argument('--n_batch_for_para_update', type=int, default=2, help='the number of batch to do one parameter update')
     
     parser.add_argument(
         "--training_record",
@@ -91,7 +92,8 @@ config_defaults = {
         'use_gpu' : args.use_gpu,
         'n_hidden' : args.n_hidden,
         'n_layers' : args.n_layers,
-        'rnn' : args.rnn
+        'rnn' : args.rnn,
+        'n_batch_for_para_update' : args.n_batch_for_para_update
     }
 
 result_dir = os.path.join(Project_DIR, "../result/char_rnn")
@@ -165,10 +167,13 @@ class char_rnn_lstm(nn.Module):
         ''' Initializes hidden and cell state '''
         # Create two new tensors with sizes n_layers x batch_size x n_hidden,
         # initialized to zero, for hidden state and cell state of LSTM
-        weight = next(self.parameters()).data
+        # weight = next(self.parameters()).data
         
-        hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device),
-                  weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device))
+        # hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device),
+        #           weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device))
+        
+        hidden = (torch.zeros(self.n_layers, batch_size, self.n_hidden, device=device),
+                   torch.zeros(self.n_layers, batch_size, self.n_hidden, device=device))
         
         return hidden
     
@@ -314,45 +319,57 @@ def run_training():
         tq = tqdm(total=(n_batches * config.batch_size), desc ='Epoch {}, total {}'.format(e, config.epochs))
             
         m.train()
+                        
         t0 = time.time()
+        count = 0
+        running_loss_training = 0
+        loss = 0
         for x, y in util.get_batches(data, config.batch_size, config.seq_length):
                        
             # 1. one-hot-encoding x
             x = util.one_hot_encode(x, m.n_tokens)
             inputs, targets = torch.from_numpy(x), torch.from_numpy(y)           
             inputs, targets = inputs.to(device=device), targets.to(device=device)
-
-            # Note here: for every batch, we want to use the previous hidden state and cell state
-            # but we are not computing gradient flow between mini-batches; otherwise, network will be very deep
-            # this is temporal truncation
-            if(type(h) is tuple):
-                h = tuple([each.data for each in h])
-            else:
-                h = h.data
-           
+          
             # 2. perform foward pass
             output, h = m(inputs, h)
             
             # 3. compute loss
-            loss = loss_func(output, torch.flatten(targets))
+            loss += loss_func(output, torch.flatten(targets))
+
+            # Note here: since RNN uses the hidden state to pass information across time points, we need to decide
+            # the length to look back in "history"
+            # As a practical limitation, we cannot do backprog through the entire history for a very long sequence,
+            # so here we use the n_batch_for_para_update to decide how many batches we will look back
+            # loss is accumulated until n_batch_for_para_update batches are processed and backprop is performed once
+            # this is temporal truncation, a common trick in training sequence model.
+            if(count>0 and (count % config.n_batch_for_para_update == 0)):
             
-            # 4. zero grad
-            optimizer.zero_grad()
+                # 4. zero grad
+                optimizer.zero_grad()
+                    
+                # 5. back-prop
+                loss.backward()
+            
+                # 6. a common trick to clip gradient
+                nn.utils.clip_grad_norm_(m.parameters(), 5.0)
                 
-            # 5. back-prop
-            loss.backward()
+                # 7. update parameters
+                optimizer.step()
+                                            
+                wandb.log({"batch loss":loss.item()/config.n_batch_for_para_update})
+                
+                tq.update(config.batch_size*config.n_batch_for_para_update)
+                tq.set_postfix(loss='{:.5f}'.format(loss.item()/config.n_batch_for_para_update))
+                
+                running_loss_training += loss.item()
+                
+                # now we reset status, so backprop will not go back further in history
+                loss = 0
+                h = m.init_hidden(config.batch_size)
+                   
+            count += 1
             
-            # 6. a common trick to clip gradient
-            nn.utils.clip_grad_norm_(m.parameters(), 5.0)
-            
-            # 7. update parameters
-            optimizer.step()            
-            
-            wandb.log({"batch loss":loss.item()})
-            
-            tq.update(config.batch_size)
-            tq.set_postfix(loss='{:.5f}'.format(loss.item()))
-                        
         t1 = time.time()
         
         current_lr = float(scheduler.get_last_lr()[0])
@@ -387,7 +404,7 @@ def run_training():
             
         t1_val = time.time()
             
-        loss_train.append(loss.item())
+        loss_train.append(running_loss_training/count)
         loss_val.append(np.mean(val_losses))
         
         wandb.log({"epoch":e, "train loss":loss_train[e], "val loss":loss_val[e]})
