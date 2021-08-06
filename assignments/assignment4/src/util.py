@@ -6,7 +6,14 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    
 def find_GPU():
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -135,3 +142,34 @@ def sample(net, size, prime='Il', top_k=None, device=torch.device('cpu')):
         chars.append(char)
 
     return ''.join(chars)
+
+def plot_ecg_waves(waves, triggers, names, figsize=[32, 32]):
+    """plot ecg waves as a plane with trigger
+
+    Args:
+        waves ([B, T, C]): C channels of ecg waves to plot
+        triggers ([B, T]): Triggers to be plotted
+        names (list): names of case
+        figsize (list, optional): figure size. Defaults to [32, 32].
+
+    Returns:
+        figs : handles to figure
+    """
+    
+    B, T, C = waves.shape
+    
+    figs = []
+    
+    for b in range(B):
+        ind = np.argwhere(triggers[b, :]==1.0)
+        
+        fig=plt.figure(figsize=figsize)    
+        for c in range(C):
+            fig.add_subplot(C, 1, c+1)
+            plt.plot(waves[b, :, c].squeeze(), 'k');
+            plt.plot(ind, waves[b, ind, c], 'ro');
+                
+        plt.title(names[b])
+        figs.append(fig)
+    
+    return figs
