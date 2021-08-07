@@ -26,7 +26,9 @@ sys.path.insert(1, str(Project_DIR))
 from cifar10dataset import *
 import util
 import resnet_model
-   
+
+util.set_seed()
+
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""

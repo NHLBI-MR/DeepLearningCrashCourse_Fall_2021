@@ -76,6 +76,7 @@ args = add_args().parse_args()
 print(args)
 
 config_defaults = {
+        'seeds': 12345,
         'epochs': args.num_epochs,
         'batch_size': args.batch_size,
         'learning_rate': args.learning_rate,
@@ -110,6 +111,9 @@ def run_training():
     # Config is a variable that holds and saves hyperparameters and inputs
     config = wandb.config
     print("get the config from wandb :", config)
+
+    # seed should be recorded as well!
+    util.set_seed(int(config.seeds))
 
     # add some data transformation
     transform = transforms.Compose([

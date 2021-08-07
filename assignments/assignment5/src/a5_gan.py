@@ -38,6 +38,8 @@ import wandb
 # disable the interactive plotting
 matplotlib.use("agg")
 
+util.set_seed()
+
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""

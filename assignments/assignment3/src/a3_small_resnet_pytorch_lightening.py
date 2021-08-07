@@ -38,6 +38,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor
 
+util.set_seed()
+
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""

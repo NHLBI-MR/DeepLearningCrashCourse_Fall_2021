@@ -186,15 +186,15 @@ def run_training():
         
         # set up the progress bar
         tq = tqdm(total=(n_batches * config.batch_size), desc ='Epoch {}, total {}'.format(e, config.epochs))
-            
+
         m.train()
-                        
+
         t0 = time.time()
         count = 0
         running_loss_training = 0
         loss = 0
         for x, y in util.get_batches(data, config.batch_size, config.seq_length):
-                       
+
             # 1. one-hot-encoding x
             x = util.one_hot_encode(x, m.n_tokens)
             inputs, targets = torch.from_numpy(x), torch.from_numpy(y)           

@@ -35,6 +35,8 @@ import train
 # get the wandb
 import wandb
 
+util.set_seed()
+
 # ----------------------------------
 def add_args():
     """Parse command-line arguments."""

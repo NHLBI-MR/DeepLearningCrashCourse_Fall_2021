@@ -21,6 +21,8 @@ Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.insert(1, str(Project_DIR))
 
 from util import *
+set_seed()
+
 # NOTE: get_weight_bias_key and get_score_activation_key may be useful here
 
 def initialize_params(num_input_layer, num_hidden_layers, num_output):

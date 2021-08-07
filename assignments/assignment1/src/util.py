@@ -3,10 +3,19 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+import random
 
 # number of samples for validation, as the MNIST convention
 NUM_VALIDATION=10000
 
+def set_seed(seed=1234):
+
+    if not seed:
+        seed = 10
+
+    np.random.seed(seed)
+    random.seed(seed)
+    
 def compute_accuracy(output, labels):
     accuracy = (np.argmax(output,axis=1) == 
         np.argmax(labels,axis=1)).sum() * 1. / labels.shape[0]

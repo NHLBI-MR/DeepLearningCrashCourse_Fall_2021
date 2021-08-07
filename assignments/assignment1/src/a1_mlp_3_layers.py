@@ -22,6 +22,8 @@ sys.path.insert(1, str(Project_DIR))
 
 from util import *
 
+set_seed()
+
 def initialize_params(num_input_layer, num_hidden1, num_hidden2, num_output):
     """
     Initialize the model parameters.

@@ -21,6 +21,8 @@ sys.path.insert(1, str(Project_DIR))
 
 import unittest
 from util import *
+set_seed()
+
 from a1_mlp_3_layers import * 
 
 class Test_Three_Layer_MLP(unittest.TestCase):

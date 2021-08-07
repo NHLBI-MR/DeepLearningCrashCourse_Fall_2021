@@ -30,7 +30,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, sampler
 import torchvision.transforms as transforms
-   
+
+# set seed
+util.set_seed(12345)
+
 def run_training(args, cifar10_dataset, num_samples_validation=1000):
     """Run the training
 

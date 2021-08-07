@@ -20,6 +20,10 @@ sweep_config = {
       'goal': 'maximize'   
     },
     'parameters': {
+        'seeds': {
+            'min':1,
+            'max':100000
+        },
         'epochs': {
             'values': [30, 40, 50, 60, 70]
         },
