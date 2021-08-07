@@ -81,15 +81,10 @@ class char_rnn_lstm(nn.Module):
         return out, hidden
     
     
-    def init_hidden(self, batch_size):
+    def init_hidden(self, batch_size, device):
         ''' Initializes hidden and cell state '''
         # Create two new tensors with sizes n_layers x batch_size x n_hidden,
         # initialized to zero, for hidden state and cell state of LSTM
-        # weight = next(self.parameters()).data
-        
-        # hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device),
-        #           weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device))
-        
         hidden = (torch.zeros(self.n_layers, batch_size, self.n_hidden, device=device),
                    torch.zeros(self.n_layers, batch_size, self.n_hidden, device=device))
         
@@ -156,10 +151,9 @@ class char_rnn_gru(nn.Module):
         return out, hidden
     
     
-    def init_hidden(self, batch_size):
+    def init_hidden(self, batch_size, device):
         ''' Initializes hidden state '''
-        weight = next(self.parameters()).data        
-        hidden = weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device=device)        
+        hidden = torch.zeros(self.n_layers, batch_size, self.n_hidden, device=device)
         return hidden
     
 # ----------------------------------------------------------

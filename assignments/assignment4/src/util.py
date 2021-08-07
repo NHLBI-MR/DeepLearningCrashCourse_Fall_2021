@@ -130,7 +130,7 @@ def sample(net, size, prime='Il', top_k=None, device=torch.device('cpu')):
     
     # First off, run through the prime characters
     chars = [ch for ch in prime]
-    h = net.init_hidden(1)
+    h = net.init_hidden(1, device=device)
     for ch in prime:
         char, h = predict(net, ch, h, top_k=top_k, device=device)
 

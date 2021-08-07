@@ -116,6 +116,9 @@ def run_training():
         loss_train : loss for every epoch
     """
 
+    # set the seed
+    util.set_seed(124)
+
     # Initialize a new wandb run
     wandb.init(config=config_defaults)
 
@@ -175,11 +178,11 @@ def run_training():
     loss_train = []
     loss_val = []
     
-    m.to(device=device)        
+    m.to(device=device)
     for e in range(config.epochs):
         
         # initialize hidden and cell state
-        h = m.init_hidden(config.batch_size)
+        h = m.init_hidden(config.batch_size, device=device)
         
         # set up the progress bar
         tq = tqdm(total=(n_batches * config.batch_size), desc ='Epoch {}, total {}'.format(e, config.epochs))
@@ -232,22 +235,22 @@ def run_training():
                 
                 # now we reset status, so backprop will not go back further in history
                 loss = 0
-                h = m.init_hidden(config.batch_size)
-                   
+                h = m.init_hidden(config.batch_size, device=device)
+
             count += 1
-            
+
         t1 = time.time()
-        
+
         current_lr = float(scheduler.get_last_lr()[0])
-            
+
         # step the scheduler
         scheduler.step()
-            
+
         # Get validation loss
-        val_h = m.init_hidden(config.batch_size)
+        val_h = m.init_hidden(config.batch_size, device=device)
         val_losses = []
         m.eval()
-        
+
         t0_val = time.time()
         with torch.no_grad():
             for x, y in util.get_batches(val_data, config.batch_size, config.seq_length):
