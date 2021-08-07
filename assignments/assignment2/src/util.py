@@ -16,11 +16,11 @@ def set_seed(seed=1234):
         seed (int, optional): [description]. Defaults to 1234.
 
         This is a good post on this topic: https://discuss.pytorch.org/t/reproducibility-with-all-the-bells-and-whistles/81097
+        This funcion is borrowed from this post.
+
     """
     if not seed:
         seed = 10
-
-    print("[ Using Seed : ", seed, " ]")
 
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
