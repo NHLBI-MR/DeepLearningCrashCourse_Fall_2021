@@ -10,7 +10,13 @@ import random
 NUM_VALIDATION=1000
 
 def set_seed(seed=1234):
+    """Set the random seeds to improve training reproducibility
 
+    Args:
+        seed (int, optional): [description]. Defaults to 1234.
+
+        This is a good post on this topic: https://discuss.pytorch.org/t/reproducibility-with-all-the-bells-and-whistles/81097
+    """
     if not seed:
         seed = 10
 

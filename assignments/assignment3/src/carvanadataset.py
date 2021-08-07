@@ -219,8 +219,8 @@ def set_up_carvana_dataset(train_dir, train_mask_dir, test_dir, test_mask_dir, n
     train_idx, val_idx = dataset_indices[num_samples_validation:], dataset_indices[:num_samples_validation]
 
     # create loader for train, val, and test
-    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), pin_memory=True)
-    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx), pin_memory=True)
+    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), pin_memory=True, num_workers=4)
+    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx), pin_memory=True, num_workers=4)
     loader_for_test = DataLoader(test_set, batch_size)
 
     # *** END CODE HERE ***

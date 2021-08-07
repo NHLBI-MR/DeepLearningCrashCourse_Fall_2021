@@ -116,8 +116,8 @@ def set_up_cifar_10_dataset(cifar10_dataset, num_samples_validation=3000, batch_
 
     train_idx, val_idx = dataset_indices[num_samples_validation:], dataset_indices[:num_samples_validation]
 
-    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx))
-    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx))
+    loader_for_train = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(train_idx), num_workers=4)
+    loader_for_val = DataLoader(train_set, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(val_idx), num_workers=4)
     loader_for_test = DataLoader(test_set, batch_size)
 
     return train_set, test_set, loader_for_train, loader_for_val, loader_for_test

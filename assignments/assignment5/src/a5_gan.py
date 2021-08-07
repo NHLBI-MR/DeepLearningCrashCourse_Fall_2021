@@ -127,7 +127,7 @@ def run_training():
                 )
     
     dataset = torchvision.datasets.FashionMNIST(data_dir, train=True, download=True, transform=transforms)
-    loader_for_train = torch.utils.data.DataLoader(dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
+    loader_for_train = torch.utils.data.DataLoader(dataset, batch_size=config.batch_size, shuffle=True, drop_last=True, num_workers=4)
 
     # get the sample size
     C, H, W = dataset[0][0].shape

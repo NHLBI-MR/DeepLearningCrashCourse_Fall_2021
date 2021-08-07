@@ -22,7 +22,7 @@ sweep_config = {
     'parameters': {
         'seeds': {
             'min':1,
-            'max':100000
+            'max':2**32
         },
         'epochs': {
             'values': [30, 40, 50, 60, 70]
