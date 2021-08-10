@@ -14,7 +14,7 @@ def set_seed(seed=1234):
     if not seed:
         seed = 10
 
-    print("[ Using Seed : ", seed, " ]")
+    print("Using Seed : ", seed)
 
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -23,7 +23,7 @@ def set_seed(seed=1234):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    
+
 def find_GPU():
     if torch.cuda.is_available():
         device = torch.device('cuda')

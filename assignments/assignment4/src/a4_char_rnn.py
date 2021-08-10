@@ -167,7 +167,7 @@ def run_training():
         optimizer = optim.Adam(m.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.reg)
 
     # declare the scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 10, gamma=0.8, last_epoch=-1, verbose=False)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 10, gamma=0.9, last_epoch=-1, verbose=False)
     
     # create training and validation data
     val_idx = int(len(data)*0.9)

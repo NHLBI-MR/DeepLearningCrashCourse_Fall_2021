@@ -13,8 +13,6 @@ def set_seed(seed=1234):
     if not seed:
         seed = 10
 
-    print("[ Using Seed : ", seed, " ]")
-
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.cuda.manual_seed(seed)
