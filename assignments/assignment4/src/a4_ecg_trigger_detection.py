@@ -63,8 +63,8 @@ def add_args():
 
     # parameters for training
     parser.add_argument('--num_epochs', type=int, default=10, help='number of epochs to train')
-    parser.add_argument('--batch_size', type=int, default=32, help='batch size')
-    parser.add_argument('--reg', type=float, default=0.0, help='regularization lambda')
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size') # you may need to reduce batch size to fit to your GPU
+    parser.add_argument('--reg', type=float, default=0.1, help='regularization lambda')
     parser.add_argument('--learning_rate', type=float, default=6e-4, help='learning rate')
     parser.add_argument('--use_gpu', type=bool, default=True, help='if system has gpu and this option is true, will use the gpu')
     parser.add_argument('--epoch_to_load', type=int, default=-1, help='if >=0, load this check point')
@@ -75,7 +75,7 @@ def add_args():
     # parameter for models
     parser.add_argument('--seq_length', type=int, default=1024, help='length of sequence')
     parser.add_argument('--n_layers', type=int, default=8, help='number of transformer layers')
-    parser.add_argument('--n_heads', type=int, default=8, help='number of heads in attention layer')
+    parser.add_argument('--n_head', type=int, default=8, help='number of heads in attention layer')
     parser.add_argument('--n_embd', type=int, default=256, help='the embedding dimension of transformer layer')
     
     parser.add_argument(
@@ -108,7 +108,7 @@ config_defaults = {
         'sigma': args.sigma,
         'seq_length': args.seq_length,
         'n_layers' : args.n_layers,
-        'n_heads' : args.n_heads,
+        'n_head' : args.n_head,
         'n_embd' : args.n_embd
     }
 
@@ -155,23 +155,36 @@ def run_training():
     T, C = waves.shape
     
     # declare the model
-    mconf = transformer.GPTConfig(C, T, output_size=1, is_causal=False, n_layer=config.n_layers, n_head=config.n_heads, n_embd=config.n_embd)
-    model = transformer.GPT(mconf)
+    model = transformer.ECGDetector(n_layer=config.n_layers, 
+                                    C=C, 
+                                    T=T, 
+                                    output_size=1, 
+                                    is_causal=False, 
+                                    n_embd=config.n_embd, 
+                                    n_head=config.n_head, 
+                                    dropout_p=0.1)
     print(model)
    
     # declare the loss function, loss_func
     loss_func = transformer.LossTriggerDetection()
 
-    # set up optimization
-    tconf = transformer.TrainerConfig(max_epochs=config.epochs, batch_size=config.batch_size, learning_rate=config.learning_rate,
-                      lr_decay=True, warmup_tokens=20*64*T, final_tokens=(config.epochs-1)*len(train_set)*T,
-                      num_workers=4)
-
-    optimizer = model.configure_optimizers(tconf)
-        
-    # declare the scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 5, gamma=0.8, last_epoch=-1, verbose=False)
+    # gradient clip for temporal training
+    grad_norm_clip = 1.0
     
+    # a warmup stage is used
+    # the total length of sequence processed is recorded
+    # if the length is les than warmup_length, learning rate is scaled down for a warm start
+    warmup_length=20*64*T
+    # then the learning rate is decayed with cosine function
+    final_length=(config.epochs-1)*len(train_set)*T
+        
+    # declare the optimizer, check the config.optimizer and define optimizer, note to use config.learning_rate and config.reg
+    if(config.optimizer=='sgd'):
+        optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, weight_decay=config.reg)
+    else:
+        #optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.reg)
+        optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.reg, amsgrad=False)
+           
     # load models if needed
     if(config.epoch_to_load>=0):
         ckpt_model = os.path.join(training_check_point_dir, f"ckpt_{config.epoch_to_load}.pbt")
@@ -199,6 +212,10 @@ def run_training():
     
     seq_length_processed = 0
     
+    if device != torch.device('cpu') and torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+        print(f"Train model on %d GPUs ... " % torch.cuda.device_count())
+            
     model.to(device=device)
     for e in range(config.epochs):
                
@@ -216,6 +233,9 @@ def run_training():
             x = x.to(device=device, dtype=torch.float32)
             y = y.to(device, dtype=torch.float32)
           
+            # *** START CODE HERE ***
+            # ToDo : finish the training loop, remember to use the gradient clip
+            
             # 2. perform foward pass
             output = model(x)
             
@@ -229,28 +249,30 @@ def run_training():
             loss.backward()
             
             # 6. a common trick to clip gradient
-            torch.nn.utils.clip_grad_norm_(model.parameters(), tconf.grad_norm_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_norm_clip)
                 
             # 7. update parameters
             optimizer.step()
+            
+            # *** END CODE HERE ***
              
             # decay the learning rate based on our progress
             lr_mult = 1
-            if tconf.lr_decay:
-                seq_length_processed += y.shape[0]*y.shape[1]
-                if seq_length_processed < tconf.warmup_tokens:
-                    # linear warmup
-                    lr_mult = float(seq_length_processed) / float(max(1, tconf.warmup_tokens))
-                else:
-                    # cosine learning rate decay
-                    progress = float(seq_length_processed - tconf.warmup_tokens) / float(max(1, tconf.final_tokens - tconf.warmup_tokens))
-                    lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
-                lr = tconf.learning_rate * lr_mult
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr
+            seq_length_processed += y.shape[0]*y.shape[1]
+            if seq_length_processed < warmup_length:
+                # linear warmup
+                lr_mult = float(seq_length_processed) / float(max(1, warmup_length))
             else:
-                lr = tconf.learning_rate
-                                                       
+                # cosine learning rate decay
+                progress = float(seq_length_processed - warmup_length) / float(max(1, final_length - warmup_length))
+                lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
+            lr = config.learning_rate * lr_mult
+            
+            # the learning rate can be set
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr
+                                                   
+            # bookkeeping    
             wandb.log({"batch loss":loss.item()})
             wandb.log({"batch learing rate":lr})
                 
@@ -265,12 +287,7 @@ def run_training():
 
         # save the check point
         save(e, count)
-
-        current_lr = lr
-
-        # step the scheduler
-        #scheduler.step()
-        
+      
         # process the validation set
         model.eval()
         val_losses = []
@@ -298,11 +315,11 @@ def run_training():
         
         wandb.log({"epoch":e, "train loss":loss_train[e], "val loss":loss_val[e]})
                        
-        str_after_val = '%.2f/%.2f seconds for Training/Validation - Tra loss = %.4f, Val loss = %.4f, - learning rate = %.6f' % (t1-t0, t1_val-t0_val, loss_train[e], loss_val[e], current_lr)
+        str_after_val = '%.2f/%.2f seconds for Training/Validation - Tra loss = %.4f, Val loss = %.4f, - learning rate = %.6f' % (t1-t0, t1_val-t0_val, loss_train[e], loss_val[e], lr)
         tq.set_postfix_str(str_after_val)
         tq.close() 
         
-    # test the model
+    # apply the model on the test set
     test_bar = tqdm(enumerate(loader_for_test), total=len(loader_for_test))
     
     t0_test = time.time()

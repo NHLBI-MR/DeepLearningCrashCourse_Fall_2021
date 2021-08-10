@@ -234,7 +234,7 @@ def set_up_ecg_dataset(train_dir, test_dir, batch_size=64, num_starts=20, chunk_
     print(train_set)
     val_set = ECGDataset(train_dir, val_data_files, chunk_length=chunk_length, num_starts=5, transform=transform)
     print(val_set)
-    
+    # no need to augment the test data
     test_set = ECGDataset(test_dir, test_data_files, chunk_length=chunk_length, num_starts=5, transform=None)
     print(test_set)
     

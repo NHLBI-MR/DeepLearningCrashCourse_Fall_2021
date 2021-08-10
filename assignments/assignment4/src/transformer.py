@@ -25,114 +25,157 @@ from torch.nn import functional as F
 
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------------------------
-class GPTConfig:
-    """ base GPT config, params common to all GPT versions """
-    embd_pdrop = 0.1
-    resid_pdrop = 0.1
-    attn_pdrop = 0.1
+# ----------------------------------------------------------           
 
-    def __init__(self, C, block_size, output_size, is_causal, **kwargs):
-        self.C = C
-        self.block_size = block_size
-        self.output_size = output_size
-        self.is_causal = is_causal
-        for k,v in kwargs.items():
-            setattr(self, k, v)
-            
+# This implemenation of attention and transformers is adopted from https://github.com/karpathy/minGPT
+
+# ----------------------------------------------------------           
 class SelfAttention(nn.Module):
     """
-    A vanilla multi-head masked self-attention layer with a projection at the end.
-    It is possible to use torch.nn.MultiheadAttention here but I am including an
-    explicit implementation here to show that there is nothing too scary here.
+    Multi-head attention model    
+    Dropout is added on the attention matrix and output.    
     """
 
-    def __init__(self, config):
-        super().__init__()
-        assert config.n_embd % config.n_head == 0
-        # key, query, value projections for all heads
-        self.key = nn.Linear(config.n_embd, config.n_embd)
-        self.query = nn.Linear(config.n_embd, config.n_embd)
-        self.value = nn.Linear(config.n_embd, config.n_embd)
-        # regularization
-        self.attn_drop = nn.Dropout(config.attn_pdrop)
-        self.resid_drop = nn.Dropout(config.resid_pdrop)
-        # output projection
-        self.proj = nn.Linear(config.n_embd, config.n_embd)
-        # causal mask to ensure that attention is only applied to the left in the input sequence
-        self.register_buffer("mask", torch.tril(torch.ones(config.block_size, config.block_size))
-                                     .view(1, 1, config.block_size, config.block_size))
-        self.n_head = config.n_head
+    def __init__(self, C=4, T=1024, output_size=1, is_causal=False, n_embd=128, n_head=8, dropout_p=0.1):
+        """Define the layers for a self-attention
 
-        self.is_causal = config.is_causal
+            Input to the attention layer has the size [B, T, C]
+            Output has the size [B, T, output_size]
+            
+            Internally, the attention has embedding size n_embd
 
-    def forward(self, x, layer_past=None):
+        Args:
+            C (int, optional): input dimension [B, T, C]. Defaults to 4.
+            T (int, optional): number of time points for attention layer. Defaults to 1024.
+            output_size (int, optional): number of output dimension. Defaults to 1.
+            is_causal (bool, optional): whether applying the masking to make the layer causal. Defaults to False.
+            n_embd (int, optional): number of internal dimension. Defaults to 128.
+            n_head (int, optional): number of heads. Defaults to 8.
+        """
+        super().__init__()            
+        
+        self.C = C
+        self.T = T
+        self.output_size = output_size
+        self.is_causal = is_causal
+        self.n_embd = n_embd
+        self.n_head = n_head
+        self.dropout_p = dropout_p
+        
+        # key, query, value projections matrix
+        # Wk, Wq, Wv
+        self.key = nn.Linear(n_embd, n_embd)
+        self.query = nn.Linear(n_embd, n_embd)
+        self.value = nn.Linear(n_embd, n_embd)
+                
+        self.output_proj = nn.Linear(n_embd, n_embd)
+        self.attn_drop = nn.Dropout(dropout_p)
+        self.resid_drop = nn.Dropout(dropout_p)
+    
+        self.register_buffer("mask", torch.tril(torch.ones(T, T)).view(1, 1, T, T))
+                
+    def forward(self, x):
+        """forward pass for the 
+
+        Args:
+            x ([B, T, C]): Input of a batch of time series
+
+        Returns:
+            y: logits in the shape of [B, T, output_size]
+        """
+        
         B, T, C = x.size()
 
-        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
-        k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-        v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        # apply the key, query and value matrix
+        k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+        q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+        v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
 
-        # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
+        # Compute attention matrix, use the matrix broadcasing 
+        # https://pytorch.org/docs/stable/notes/broadcasting.html
+        # (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+        
+        # if causality is needed, apply the mask
         if(self.is_causal):
             att = att.masked_fill(self.mask[:,:,:T,:T] == 0, float('-inf'))
+        
         att = F.softmax(att, dim=-1)
         att = self.attn_drop(att)
-        y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
-        y = y.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
-
-        # output projection
-        y = self.resid_drop(self.proj(y))
+        y = att @ v
+        y = y.transpose(1, 2).contiguous().view(B, T, C)
+        y = self.resid_drop(self.output_proj(y))
         return y
 
 class Block(nn.Module):
-    """ an unassuming Transformer block """
+    """ Transformer module
+    
+    The Pre-LayerNorm implementation is used here:
+    
+    x-> LayerNorm -> attention -> + -> LayerNorm -> LinearLayers -> + -> logits
+    |-----------------------------| |-------------------------------|
+    
+    """
 
-    def __init__(self, config):
+    def __init__(self, C=4, T=1024, output_size=1, is_causal=False, n_embd=128, n_head=8, dropout_p=0.1):
         super().__init__()
-        self.ln1 = nn.LayerNorm(config.n_embd)
-        self.ln2 = nn.LayerNorm(config.n_embd)
-        self.attn = SelfAttention(config)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+        self.attn = SelfAttention(C=C, T=T, output_size=output_size, is_causal=is_causal, n_embd=n_embd, n_head=n_head, dropout_p=dropout_p)
         self.mlp = nn.Sequential(
-            nn.Linear(config.n_embd, 4 * config.n_embd),
+            nn.Linear(n_embd, 4 * n_embd),
             nn.GELU(),
-            nn.Linear(4 * config.n_embd, config.n_embd),
-            nn.Dropout(config.resid_pdrop),
+            nn.Linear(4 * n_embd, n_embd),
+            nn.Dropout(dropout_p),
         )
 
-    def forward(self, x):
+    def forward(self, x):        
         x = x + self.attn(self.ln1(x))
         x = x + self.mlp(self.ln2(x))
         return x
 
-class GPT(nn.Module):
-    """  the full GPT language model, with a context size of block_size """
+class ECGDetector(nn.Module):
+    """A transformer based ECG detector
 
-    def __init__(self, config):
+        This model uses positional embedding. 
+        
+        The architecture is quite straight-forward :
+        
+        x -> input_proj --> + --> drop_out --> attention layers one after another --> LayerNorm --> output_proj --> logits
+                            |
+        pos_emb ------------|
+    
+    """
+
+    def __init__(self, n_layer=8, C=4, T=1024, output_size=1, is_causal=False, n_embd=128, n_head=8, dropout_p=0.1):
         super().__init__()
 
-        # input embedding stem
-        self.tok_emb = nn.Linear(config.C, config.n_embd)
-        self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size, config.n_embd))
-        self.drop = nn.Dropout(config.embd_pdrop)
-        # transformer
-        self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
-        # decoder head
-        self.ln_f = nn.LayerNorm(config.n_embd)
-        self.head = nn.Linear(config.n_embd, config.output_size, bias=False)
+        self.T = T
 
-        self.block_size = config.block_size
+        # input projection
+        self.input_proj = nn.Linear(C, n_embd)
+        
+        # the positional embedding is used
+        # this is learned through the training
+        self.pos_emb = nn.Parameter(torch.zeros(1, T, n_embd))
+                
+        self.drop = nn.Dropout(dropout_p)
+        
+        # transformer modules
+        # stack them for n_layers
+        self.blocks = nn.Sequential(*[Block(C=C, T=T, output_size=output_size, is_causal=is_causal, n_embd=n_embd, n_head=n_head, dropout_p=dropout_p) for _ in range(n_layer)])
+        
+        # decoder head
+        self.layer_norm = nn.LayerNorm(n_embd)
+        self.output_proj = nn.Linear(n_embd, output_size, bias=False)
+
         self.apply(self._init_weights)
 
-        logger.info("number of parameters: %e", sum(p.numel() for p in self.parameters()))
-
-    def get_block_size(self):
-        return self.block_size
+        # a good trick to count how many parameters
+        logger.info("number of parameters: %d", sum(p.numel() for p in self.parameters()))
 
     def _init_weights(self, module):
-        if isinstance(module, (nn.Linear, nn.Embedding)):
+        if isinstance(module, (nn.Linear)):
             module.weight.data.normal_(mean=0.0, std=0.02)
             if isinstance(module, nn.Linear) and module.bias is not None:
                 module.bias.data.zero_()
@@ -140,66 +183,40 @@ class GPT(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def configure_optimizers(self, train_config):
+    def forward(self, x):
+        """Forward pass of detector
+
+        Args:
+            x ([B, T, C]]): Input time sereis with B batches and T time points with C channels
+
+            Due to the positional embedding is used, the input T is limited to less or equal to self.T
+
+        Returns:
+            logits: [B, T, output_size]
         """
-        This long function is unfortunately doing something very simple and is being very defensive:
-        We are separating out all parameters of the model into two buckets: those that will experience
-        weight decay for regularization and those that won't (biases, and layernorm/embedding weights).
-        We are then returning the PyTorch optimizer object.
-        """
-
-        # separate out all parameters to those that will and won't experience regularizing weight decay
-        decay = set()
-        no_decay = set()
-        whitelist_weight_modules = (torch.nn.Linear, )
-        blacklist_weight_modules = (torch.nn.LayerNorm, torch.nn.Embedding)
-        for mn, m in self.named_modules():
-            for pn, p in m.named_parameters():
-                fpn = '%s.%s' % (mn, pn) if mn else pn # full param name
-
-                if pn.endswith('bias'):
-                    # all biases will not be decayed
-                    no_decay.add(fpn)
-                elif pn.endswith('weight') and isinstance(m, whitelist_weight_modules):
-                    # weights of whitelist modules will be weight decayed
-                    decay.add(fpn)
-                elif pn.endswith('weight') and isinstance(m, blacklist_weight_modules):
-                    # weights of blacklist modules will NOT be weight decayed
-                    no_decay.add(fpn)
-
-        # special case the position embedding parameter in the root GPT module as not decayed
-        no_decay.add('pos_emb')
-
-        # validate that we considered every parameter
-        param_dict = {pn: p for pn, p in self.named_parameters()}
-        inter_params = decay & no_decay
-        union_params = decay | no_decay
-        assert len(inter_params) == 0, "parameters %s made it into both decay/no_decay sets!" % (str(inter_params), )
-        assert len(param_dict.keys() - union_params) == 0, "parameters %s were not separated into either decay/no_decay set!" \
-                                                    % (str(param_dict.keys() - union_params), )
-
-        # create the pytorch optimizer object
-        optim_groups = [
-            {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": train_config.weight_decay},
-            {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
-        ]
-        optimizer = torch.optim.AdamW(optim_groups, lr=train_config.learning_rate, betas=train_config.betas)
-        return optimizer
-
-    def forward(self, idx):
-        b, t, c = idx.size()
-        assert t <= self.block_size, "Cannot forward, model block size is exhausted."
-
-        # forward the GPT model
-        token_embeddings = self.tok_emb(idx) # each index maps to a (learnable) vector
-        position_embeddings = self.pos_emb[:, :t, :] # each position maps to a (learnable) vector
-        x = self.drop(token_embeddings + position_embeddings)
+        
+        B, T, C = x.size()
+        assert T <= self.T, "The positional embedding is used, so the maximal series length is %d" % self.T
+                
+        # *** START CODE HERE ***
+        # Todo : finish the forward pass
+        
+        # project input from C channels to n_embd channels
+        x_proj = self.input_proj(x)
+        x = self.drop(x_proj + self.pos_emb[:, :T, :])
+        
+        # go through all layers of attentions
         x = self.blocks(x)
-        x = self.ln_f(x)
-        logits = self.head(x)
-
+        
+        # project outputs to output_size channel        
+        x = self.layer_norm(x)
+        logits = self.output_proj(x)
+        # *** END CODE HERE ***
+        
         return logits
     
+# -------------------------------------------
+
 class LossTriggerDetection:
     """
     Loss for trigger detection
@@ -224,26 +241,6 @@ class LossTriggerDetection:
         loss = self.bce_loss(probs.squeeze(), y)
         # *** END CODE HERE ***
         return loss
-    
-class TrainerConfig:
-    # optimization parameters
-    max_epochs = 10
-    batch_size = 64
-    learning_rate = 3e-4
-    betas = (0.9, 0.95)
-    grad_norm_clip = 1.0
-    weight_decay = 0.1 # only applied on matmul weights
-    # learning rate decay params: linear warmup followed by cosine decay to 10% of original
-    lr_decay = False
-    warmup_tokens = 375e6 # these two numbers come from the GPT-3 paper, but may not be good defaults elsewhere
-    final_tokens = 260e9 # (at what point we reach 10% of original LR)
-    # checkpoint settings
-    ckpt_path = None
-    num_workers = 0 # for DataLoader
-
-    def __init__(self, **kwargs):
-        for k,v in kwargs.items():
-            setattr(self, k, v)
                 
 # ----------------------------------------------------------
 
