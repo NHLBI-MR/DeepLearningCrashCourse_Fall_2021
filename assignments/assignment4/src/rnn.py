@@ -1,7 +1,7 @@
 ##################################################
 ## Deep learning crash course, assignment 4
 ##################################################
-## Description : the RNN and transformer model
+## Description : the RNN model
 ## Author: Hui Xue
 ## Copyright: 2021, All rights reserved
 ## Version: 1.0.1
@@ -159,21 +159,9 @@ class char_rnn_gru(nn.Module):
 # ----------------------------------------------------------
 
 def main():
-
-    # create the model
-    m = Cifar10SmallCNN(32, 32, 3, use_mobile_net_conv=False)
-    print(m)
-
-    # test forward pass
-    input = torch.rand((16, 3, 32, 32))
-    output = m(input)
-    print("output", output.shape)
-
-    # use seperable conv
-    m = Cifar10SmallCNN(32, 32, 3, use_mobile_net_conv=True)
-    print(m)
-
-    output = m(input)
+    """Model testing code
+    """
+    pass
 
 if __name__ == '__main__':
     main()

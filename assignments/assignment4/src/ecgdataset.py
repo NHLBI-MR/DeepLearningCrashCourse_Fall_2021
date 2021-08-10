@@ -99,7 +99,7 @@ class ECGDataset(Dataset):
         locs = np.argwhere(ecg_trigger>0)
         ecg_trigger[locs] = 1.0
                 
-        starting_locs = np.random.randint(locs[0], locs[1], size=self.num_starts)
+        starting_locs = np.random.randint(locs[0], locs[-1], size=self.num_starts)
         starting_locs[0] = 0 # always start from beginning
         
         waves = []
@@ -108,13 +108,18 @@ class ECGDataset(Dataset):
             s = starting_locs[n]
             inds = np.arange(s, T, self.chunk_length)
             for ind in inds:
-                if(ind+self.chunk_length<T):
-                    w = ecg_normalized[ind:ind+self.chunk_length, :]
-                    t = ecg_trigger[ind:ind+self.chunk_length]
-                
-                    self.ecg_waves.append(w)
-                    self.ecg_triggers.append(t)
-                    self.ecg_names.extend([(data_file, ind)])
+                if(ind+self.chunk_length>=T):
+                    ind = T - self.chunk_length - 1
+                    
+                if(ind<0):
+                    ind = 0
+                    
+                w = ecg_normalized[ind:ind+self.chunk_length, :]
+                t = ecg_trigger[ind:ind+self.chunk_length]
+            
+                self.ecg_waves.append(w)
+                self.ecg_triggers.append(t)
+                self.ecg_names.extend([(data_file, ind)])
 
     def __len__(self):
         """Get the number of samples in this dataset.
@@ -181,10 +186,13 @@ class SmoothingTrigger(object):
         """
 
         trigger = sample[1]
-        trigger_smoothed = gaussian_filter1d(trigger, sigma=self.sigma)
-        trigger_smoothed /= np.max(trigger_smoothed)
+        if(np.max(trigger)>0):
+            trigger_smoothed = gaussian_filter1d(trigger, sigma=self.sigma)
+            trigger_smoothed /= np.max(trigger_smoothed)
 
-        return (sample[0], trigger_smoothed, sample[2])
+            return (sample[0], trigger_smoothed, sample[2])
+        else:
+            return sample
 
     def __repr__(self):
         return self.__class__.__name__ + '(sigma={})'.format(self.sigma)
@@ -234,7 +242,7 @@ def set_up_ecg_dataset(train_dir, test_dir, batch_size=64, num_starts=20, chunk_
     # create loader for train, val, and test
     loader_for_train = DataLoader(train_set, batch_size=batch_size, shuffle=True, pin_memory=True)
     loader_for_val = DataLoader(train_set, batch_size=batch_size, shuffle=True, pin_memory=True)
-    loader_for_test = DataLoader(test_set, batch_size)
+    loader_for_test = DataLoader(test_set, batch_size, pin_memory=True)
 
     return train_set, test_set, loader_for_train, loader_for_val, loader_for_test
 
@@ -246,10 +254,10 @@ if __name__ == "__main__":
     train_dir = os.path.join(Project_DIR, "../data/ecg/train")
     test_dir = os.path.join(Project_DIR, "../data/ecg/test")
 
-    result_dir = os.path.join(Project_DIR, "../result/ecg")
+    result_dir = os.path.join(Project_DIR, "../result/ecg/dataset")
     os.makedirs(result_dir, exist_ok=True)
 
-    train_set, test_set, loader_for_train, loader_for_val, loader_for_test = set_up_ecg_dataset(train_dir, test_dir, batch_size=16, num_starts=20, chunk_length=2048, sigma=2.0, val_frac=0.1)
+    train_set, test_set, loader_for_train, loader_for_val, loader_for_test = set_up_ecg_dataset(train_dir, test_dir, batch_size=16, num_starts=20, chunk_length=512, sigma=2.0, val_frac=0.1)
 
     # directly get one sample
     waves, triggers, names = train_set[356]

@@ -34,7 +34,7 @@ Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.insert(1, str(Project_DIR))
 
 import util
-import model
+import rnn
  
 # get the wandb
 import wandb
@@ -151,9 +151,9 @@ def run_training():
 
     # declare the model
     if(config.rnn == 'lstm'):
-        m = model.char_rnn_lstm(chars, config.n_hidden, config.n_layers)
+        m = rnn.char_rnn_lstm(chars, config.n_hidden, config.n_layers)
     else:
-        m = model.char_rnn_gru(chars, config.n_hidden, config.n_layers)
+        m = rnn.char_rnn_gru(chars, config.n_hidden, config.n_layers)
         
     print(m)
    

@@ -237,7 +237,7 @@ class LossBinarySegmentation:
     """
 
     def __init__(self):
-        self.nll_loss = nn.BCELoss()
+        self.bce_loss = nn.BCELoss()
 
     def __call__(self, scores, y):
         """Compute binary CE loss
@@ -252,7 +252,7 @@ class LossBinarySegmentation:
         # *** START CODE HERE ***
         # TODO: compute and return the loss
         probs = torch.sigmoid(scores)
-        loss = self.nll_loss(probs, y)
+        loss = self.bce_loss(probs, y)
         # *** END CODE HERE ***
         return loss
 
