@@ -212,9 +212,10 @@ def run_training():
     
     seq_length_processed = 0
     
-    if device != torch.device('cpu') and torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
-        print(f"Train model on %d GPUs ... " % torch.cuda.device_count())
+    # uncomment to use multiple GPUs
+    # if device != torch.device('cpu') and torch.cuda.device_count() > 1:
+    #     model = nn.DataParallel(model)
+    #     print(f"Train model on %d GPUs ... " % torch.cuda.device_count())
             
     model.to(device=device)
     for e in range(config.epochs):
@@ -384,6 +385,7 @@ def main():
         fig_name = os.path.join(result_dir, f"ecg_test_{test_names[which_batch][0][i]}_{test_names[which_batch][1][i]}.png")
         logger.info(f"save {i} -- {fig_name}")
         f.savefig(fig_name, dpi=100)
+        wandb.log({"ecg test samples": f})
         plt.close(f)
         
 if __name__ == '__main__':
