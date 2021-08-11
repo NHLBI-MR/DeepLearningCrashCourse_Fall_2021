@@ -385,7 +385,7 @@ def main():
         fig_name = os.path.join(result_dir, f"ecg_test_{test_names[which_batch][0][i]}_{test_names[which_batch][1][i]}.png")
         logger.info(f"save {i} -- {fig_name}")
         f.savefig(fig_name, dpi=100)
-        wandb.log({"ecg test samples": f})
+        wandb.log({f"ecg test samples {i}": [wandb.Image(fig_name)]})
         plt.close(f)
         
 if __name__ == '__main__':
