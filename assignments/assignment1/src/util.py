@@ -98,7 +98,7 @@ def load_data(data_dir='../data', force_loading=False):
 
 def softmax(x):
     """
-    Softmax function, using the numericla stable formula.
+    Softmax function, using the numerical stable formula.
 
     Inputs:
         x: [N, C], N samples, C classes

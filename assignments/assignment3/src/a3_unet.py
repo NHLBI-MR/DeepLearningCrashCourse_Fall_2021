@@ -135,7 +135,7 @@ def run_training():
 
     # declare the scheduler
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 5, gamma=0.5, last_epoch=-1, verbose=False)
-    # *** START CODE HERE ***
+    # *** END CODE HERE ***
 
     # get the device    
     device = util.find_GPU()
