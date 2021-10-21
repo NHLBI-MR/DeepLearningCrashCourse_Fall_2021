@@ -10,24 +10,6 @@
 ## Status: active development
 ##################################################
 
-import os
-import sys
-from pathlib import Path
-import numpy as np
-import matplotlib.pyplot as plt
-import argparse
-from time import gmtime, strftime
-
-from pytorch_lightning import callbacks
-
-Project_DIR = Path(__file__).parents[0].resolve()
-sys.path.insert(1, str(Project_DIR))
-
-from cifar10dataset import *
-import util
-import resnet_model
-import train
-
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -37,6 +19,23 @@ import torchvision.transforms as transforms
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning import callbacks
+
+import os
+import sys
+from pathlib import Path
+import numpy as np
+import matplotlib.pyplot as plt
+import argparse
+from time import gmtime, strftime
+
+Project_DIR = Path(__file__).parents[0].resolve()
+sys.path.insert(1, str(Project_DIR))
+
+from cifar10dataset import *
+import util
+import resnet_model
+import train
 
 util.set_seed()
 

@@ -13,18 +13,18 @@
 # Kaggle Carvana challenge
 # https://www.kaggle.com/c/carvana-image-masking-challenge
 
+import torch
+import torch.nn as nn
+import torchvision.transforms as T
+from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
+
 import sys
 from pathlib import Path
 import numpy as np
 import matplotlib 
 from tqdm import tqdm 
 import time
-
-import torch
-import torch.nn as nn
-import torchvision.transforms as T
-from torch.utils.data import Dataset, DataLoader, sampler
-import torchvision.transforms as transforms
 
 Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.append(str(Project_DIR))

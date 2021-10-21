@@ -13,16 +13,16 @@
 # CIFAR 10 dataset
 # https://www.cs.toronto.edu/~kriz/cifar.html
 
-import sys
-from pathlib import Path
-import numpy as np
-import matplotlib 
-
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
 from torch.utils.data import Dataset, DataLoader, sampler
 import torchvision.transforms as transforms
+
+import sys
+from pathlib import Path
+import numpy as np
+import matplotlib 
 
 Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.append(str(Project_DIR))

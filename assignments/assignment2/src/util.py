@@ -1,9 +1,9 @@
+import torch
 import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from six.moves import cPickle as pickle
-import torch
 import random
 
 # number of samples for validation, as the MNIST convention

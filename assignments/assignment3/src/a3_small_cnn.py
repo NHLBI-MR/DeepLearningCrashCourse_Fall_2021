@@ -10,6 +10,12 @@
 ## Status: active development
 ##################################################
 
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
+
 import os
 import sys
 from pathlib import Path
@@ -25,13 +31,7 @@ from cifar10dataset import *
 import util
 import model
 import train
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, sampler
-import torchvision.transforms as transforms
-   
+  
 # get the wandb
 import wandb
 

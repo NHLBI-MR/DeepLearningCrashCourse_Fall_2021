@@ -10,6 +10,12 @@
 ## Status: active development
 ##################################################
 
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader, sampler
+import torchvision.transforms as transforms
+
 import os
 import sys
 from pathlib import Path
@@ -24,12 +30,6 @@ sys.path.insert(1, str(Project_DIR))
 from dataset import *
 import util
 import model
-
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, sampler
-import torchvision.transforms as transforms
 
 # set seed
 util.set_seed(12345)
