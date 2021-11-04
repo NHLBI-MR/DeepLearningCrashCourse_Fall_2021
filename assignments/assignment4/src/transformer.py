@@ -10,6 +10,10 @@
 ## Status: active development
 ##################################################
 
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+
 import os
 import sys
 import math
@@ -18,10 +22,6 @@ from pathlib import Path
 
 Project_DIR = Path(__file__).parents[0].resolve()
 sys.path.insert(1, str(Project_DIR))
-
-import torch
-import torch.nn as nn
-from torch.nn import functional as F
 
 logger = logging.getLogger(__name__)
 
